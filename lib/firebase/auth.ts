@@ -313,13 +313,15 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
 export const subscribeToAuthState = (
   callback: (user: User | null) => void
 ): (() => void) => {
-  if (!auth || !isFirebaseConfigured) {
+  if (!auth && typeof window !== 'undefined') {
+    // Try to initialize lazily
+    ensureFirebaseClient();
+  }
+  if (!auth) {
     // Immediately signal "no user" so the UI can leave the loading state
     if (typeof window !== 'undefined') {
-      // Defer to next tick to keep behavior consistent with async onAuthStateChanged
       setTimeout(() => callback(null), 0);
     }
-    // Return a no-op unsubscribe function
     return () => {};
   }
   return onAuthStateChanged(auth, callback);
