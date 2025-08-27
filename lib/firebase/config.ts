@@ -13,6 +13,15 @@ const requiredConfigKeys = [
   'NEXT_PUBLIC_FIREBASE_APP_ID',
 ];
 
+// Debug: Log environment variables in production (temporary)
+if (typeof window !== 'undefined') {
+  console.log('🔍 Firebase Environment Variables Debug:');
+  requiredConfigKeys.forEach(key => {
+    const value = process.env[key];
+    console.log(`${key}:`, value ? `${value.substring(0, 10)}...` : 'UNDEFINED');
+  });
+}
+
 const isFirebaseConfigured = requiredConfigKeys.every(key =>
   process.env[key] && process.env[key] !== 'your_firebase_api_key' && process.env[key] !== 'your_project_id'
 );
