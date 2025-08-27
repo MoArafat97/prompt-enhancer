@@ -16,7 +16,7 @@ import {
   EmailAuthProvider,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db, isFirebaseConfigured } from './config';
+import { auth, db, isFirebaseConfigured, ensureFirebaseClient } from './config';
 import { UserProfile } from './types';
 import * as fallbackAuth from './auth-fallback';
 
@@ -117,6 +117,10 @@ export const signInWithEmail = async (
 
 // Sign in with Google
 export const signInWithGoogle = async (): Promise<UserCredential> => {
+  // Ensure client SDK is initialized if possible
+  if (!auth && typeof window !== 'undefined') {
+    ensureFirebaseClient();
+  }
   if (!auth || !isFirebaseConfigured) {
     throw new Error('Firebase authentication is not configured');
   }

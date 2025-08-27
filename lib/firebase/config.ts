@@ -66,4 +66,20 @@ if (typeof window !== 'undefined' && isFirebaseConfigured) {
   console.warn('Firebase configuration is incomplete. Authentication features will be disabled.');
 }
 
+// Ensure Firebase is initialized on the client when needed
+export function ensureFirebaseClient() {
+  if (typeof window === 'undefined' || !isFirebaseConfigured) return;
+  try {
+    if (!getApps().length) {
+      app = initializeApp(firebaseConfig);
+    } else {
+      app = getApps()[0];
+    }
+    auth = getAuth(app);
+    db = getFirestore(app);
+  } catch (e) {
+    console.error('ensureFirebaseClient failed:', e);
+  }
+}
+
 export { app, auth, db, analytics };
