@@ -297,6 +297,11 @@ export const subscribeToAuthState = (
   callback: (user: User | null) => void
 ): (() => void) => {
   if (!auth || !isFirebaseConfigured) {
+    // Immediately signal "no user" so the UI can leave the loading state
+    if (typeof window !== 'undefined') {
+      // Defer to next tick to keep behavior consistent with async onAuthStateChanged
+      setTimeout(() => callback(null), 0);
+    }
     // Return a no-op unsubscribe function
     return () => {};
   }

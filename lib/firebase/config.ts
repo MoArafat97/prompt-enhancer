@@ -3,28 +3,8 @@ import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
 import { getAnalytics, Analytics, isSupported } from 'firebase/analytics';
 
-// Check if all required Firebase config values are present
-const requiredConfigKeys = [
-  'NEXT_PUBLIC_FIREBASE_API_KEY',
-  'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
-  'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
-  'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET',
-  'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
-  'NEXT_PUBLIC_FIREBASE_APP_ID',
-];
-
-// Debug: Log environment variables in production (temporary)
-if (typeof window !== 'undefined') {
-  console.log('🔍 Firebase Environment Variables Debug:');
-  requiredConfigKeys.forEach(key => {
-    const value = process.env[key];
-    console.log(`${key}:`, value ? `${value.substring(0, 10)}...` : 'UNDEFINED');
-  });
-}
-
-const isFirebaseConfigured = requiredConfigKeys.every(key =>
-  process.env[key] && process.env[key] !== 'your_firebase_api_key' && process.env[key] !== 'your_project_id'
-);
+// Helper: we'll derive configuration presence from the firebaseConfig object below.
+// Avoid dynamic process.env access on the client since it is not statically analyzable in Next.js.
 
 // Firebase client configuration
 // Note: These keys are meant to be public (per Firebase documentation)
@@ -38,6 +18,15 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
+
+// Determine if Firebase is configured using statically-referenced fields.
+// Dynamic access like process.env[key] is not supported in Next.js client bundles.
+export const isFirebaseConfigured = Boolean(
+  firebaseConfig.apiKey &&
+  firebaseConfig.authDomain &&
+  firebaseConfig.projectId &&
+  firebaseConfig.appId
+);
 
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
@@ -77,4 +66,4 @@ if (typeof window !== 'undefined' && isFirebaseConfigured) {
   console.warn('Firebase configuration is incomplete. Authentication features will be disabled.');
 }
 
-export { app, auth, db, analytics, isFirebaseConfigured };
+export { app, auth, db, analytics };
