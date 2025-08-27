@@ -111,7 +111,7 @@ export default function FirebaseCheckPage() {
           
           <div className="space-y-4 text-gray-700 dark:text-gray-300">
             <div>
-              <h3 className="font-medium mb-2">If you're seeing missing variables:</h3>
+              <h3 className="font-medium mb-2">If you&apos;re seeing missing variables:</h3>
               <ol className="list-decimal list-inside space-y-2 ml-4">
                 <li>Go to your <a href="https://vercel.com/dashboard" className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">Vercel Dashboard</a></li>
                 <li>Select your project</li>
