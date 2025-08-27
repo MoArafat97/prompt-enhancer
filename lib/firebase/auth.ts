@@ -8,6 +8,7 @@ import {
   updatePassword,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
   onAuthStateChanged,
   User,
   UserCredential,
@@ -25,8 +26,11 @@ const googleProvider = new GoogleAuthProvider();
 
 // Helper function to create user profile
 export const createUserProfile = async (user: User): Promise<UserProfile> => {
-  if (!db || !isFirebaseConfigured) {
-    throw new Error('Firebase is not configured');
+  if (!db) {
+    if (typeof window !== 'undefined') ensureFirebaseClient();
+  }
+  if (!db) {
+    throw new Error('Firebase Firestore is not initialized on client');
   }
 
   const userRef = doc(db, 'users', user.uid);
@@ -118,21 +122,30 @@ export const signInWithEmail = async (
 // Sign in with Google
 export const signInWithGoogle = async (): Promise<UserCredential> => {
   // Ensure client SDK is initialized if possible
-  if (!auth && typeof window !== 'undefined') {
+  if (typeof window !== 'undefined' && !auth) {
     ensureFirebaseClient();
   }
-  if (!auth || !isFirebaseConfigured) {
-    throw new Error('Firebase authentication is not configured');
+  if (!auth) {
+    throw new Error('Firebase Auth is not initialized on the client');
   }
 
   try {
+    // Try popup first
     const userCredential = await signInWithPopup(auth, googleProvider);
-
-    // Create or update user profile
     await createUserProfile(userCredential.user);
-
     return userCredential;
-  } catch (error) {
+  } catch (error: any) {
+    const code = error?.code || '';
+    // Fallback to redirect for environments where popups are restricted
+    if (
+      code === 'auth/operation-not-supported-in-this-environment' ||
+      code === 'auth/popup-blocked' ||
+      code === 'auth/cancelled-popup-request'
+    ) {
+      await signInWithRedirect(auth, googleProvider);
+      // signInWithRedirect will navigate away; return a rejected promise to stop further processing
+      throw error;
+    }
     console.error('Error signing in with Google:', error);
     throw error;
   }
