@@ -19,6 +19,7 @@ import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { EnhancementTechnique, OutputFormat, EnhancementResult } from '@/lib/types';
 import { useToast } from '@/components/ui/toast';
 import { useAuth } from '@/lib/contexts/AuthContext';
+import { SimpleFirebaseStatus } from '@/components/debug/SimpleFirebaseStatus';
 
 export default function HomePage() {
   const router = useRouter();
@@ -311,6 +312,9 @@ export default function HomePage() {
 
       {/* About Section */}
       <About />
+
+      {/* Debug Component */}
+      <SimpleFirebaseStatus />
     </div>
   );
 }
