@@ -8,6 +8,7 @@ import { PWAPrompt } from '@/components/layout/PWAPrompt';
 import { ToastProvider } from '@/components/ui/toast';
 import { ClientAuthProvider } from '@/components/providers/ClientAuthProvider';
 import { PWA_CONFIG } from '@/lib/constants';
+import { FirebaseDebug } from '@/components/debug/FirebaseDebug';
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -131,6 +132,9 @@ export default function RootLayout({ children }: RootLayoutProps) {
 
             {/* PWA Components */}
             <PWAPrompt />
+
+            {/* Debug Components - Only in development */}
+            {process.env.NODE_ENV === 'development' && <FirebaseDebug />}
           </ClientAuthProvider>
         </ToastProvider>
         
