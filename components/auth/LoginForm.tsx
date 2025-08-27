@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Mail, Lock, Loader2 } from 'lucide-react';
 import { GoogleAuthButton } from './GoogleAuthButton';
+import { isFirebaseConfigured } from '@/lib/firebase/config';
 
 interface LoginFormProps {
   onSuccess: () => void;
@@ -120,23 +121,21 @@ export function LoginForm({ onSuccess, onSignupClick, onResetClick }: LoginFormP
         )}
       </Button>
 
-      {/* Google Sign In - Temporarily disabled until OAuth is configured */}
-      {false && (
-        <>
-          {/* Divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-surface-tertiary"></div>
-            </div>
-            <div className="relative flex justify-center text-xs">
-              <span className="px-2 bg-surface-primary text-text-muted">Or continue with</span>
-            </div>
+      {/* Social Sign In */}
+      <>
+        {/* Divider */}
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-surface-tertiary"></div>
           </div>
+          <div className="relative flex justify-center text-xs">
+            <span className="px-2 bg-surface-primary text-text-muted">Or continue with</span>
+          </div>
+        </div>
 
-          {/* Google Sign In */}
-          <GoogleAuthButton onSuccess={onSuccess} />
-        </>
-      )}
+        {/* Google Sign In */}
+        <GoogleAuthButton onSuccess={onSuccess} />
+      </>
 
       {/* Sign Up Link */}
       <p className="text-center text-sm text-text-secondary">
