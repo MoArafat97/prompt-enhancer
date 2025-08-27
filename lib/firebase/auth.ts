@@ -16,14 +16,19 @@ import {
   EmailAuthProvider,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from './config';
+import { auth, db, isFirebaseConfigured } from './config';
 import { UserProfile } from './types';
+import * as fallbackAuth from './auth-fallback';
 
 // Auth providers
 const googleProvider = new GoogleAuthProvider();
 
 // Helper function to create user profile
 export const createUserProfile = async (user: User): Promise<UserProfile> => {
+  if (!db || !isFirebaseConfigured) {
+    throw new Error('Firebase is not configured');
+  }
+
   const userRef = doc(db, 'users', user.uid);
   const userSnap = await getDoc(userRef);
 
@@ -63,6 +68,10 @@ export const signUpWithEmail = async (
   password: string,
   displayName: string
 ): Promise<UserCredential> => {
+  if (!auth || !isFirebaseConfigured) {
+    throw new Error('Firebase authentication is not configured');
+  }
+
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     
@@ -89,12 +98,16 @@ export const signInWithEmail = async (
   email: string,
   password: string
 ): Promise<UserCredential> => {
+  if (!auth || !isFirebaseConfigured) {
+    return fallbackAuth.signInWithEmail(email, password);
+  }
+
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    
+
     // Ensure user profile exists
     await createUserProfile(userCredential.user);
-    
+
     return userCredential;
   } catch (error) {
     console.error('Error signing in:', error);

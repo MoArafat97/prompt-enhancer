@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
+import { db, isFirebaseConfigured } from '@/lib/firebase/config';
 import { Button } from '@/components/ui/button';
 import { Loader2, Bug, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 
@@ -34,12 +34,19 @@ export function PromptsDebug() {
     };
 
     try {
+      // Check if Firebase is configured
+      if (!db || !isFirebaseConfigured) {
+        info.error = 'Firebase is not configured';
+        info.firestoreConnection = false;
+        return info;
+      }
+
       // Test Firestore connection
       const testQuery = query(collection(db, 'prompts'), where('userId', '==', user?.uid || 'test'));
       const snapshot = await getDocs(testQuery);
       info.firestoreConnection = true;
       info.promptsCount = snapshot.size;
-      
+
       // Get raw data
       snapshot.forEach((doc) => {
         info.rawPrompts.push({
