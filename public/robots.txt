@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://prompt-enhancer.vercel.app/sitemap.xml
+
+# Disallow API routes from being crawled
+Disallow: /api/
+
+# Allow all other pages
+Allow: /

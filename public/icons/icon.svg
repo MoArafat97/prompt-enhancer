@@ -1,0 +1,22 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="512" height="512" rx="128" fill="url(#gradient)"/>
+  
+  <!-- Main Icon -->
+  <g transform="translate(128, 128)">
+    <!-- Sparkle/Enhancement Symbol -->
+    <path d="M128 64L144 112L192 128L144 144L128 192L112 144L64 128L112 112L128 64Z" fill="white" opacity="0.9"/>
+    <path d="M192 32L200 48L216 56L200 64L192 80L184 64L168 56L184 48L192 32Z" fill="white" opacity="0.7"/>
+    <path d="M64 32L72 48L88 56L72 64L64 80L56 64L40 56L56 48L64 32Z" fill="white" opacity="0.7"/>
+    <path d="M208 160L216 176L232 184L216 192L208 208L200 192L184 184L200 176L208 160Z" fill="white" opacity="0.6"/>
+    <path d="M48 160L56 176L72 184L56 192L48 208L40 192L24 184L40 176L48 160Z" fill="white" opacity="0.6"/>
+  </g>
+  
+  <!-- Gradient Definition -->
+  <defs>
+    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+</svg>
