@@ -24,7 +24,7 @@ A modern, AI-powered prompt enhancement tool built with Next.js 14, TypeScript, 
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/MoArafat97/prompt-enhancer.git
    cd prompt-enhancer
    ```
 
@@ -216,7 +216,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 If you encounter any issues or have questions:
 
-1. Check the [Issues](https://github.com/your-repo/issues) page
+1. Check the [Issues](https://github.com/MoArafat97/prompt-enhancer/issues) page
 2. Create a new issue with detailed information
 3. Join our community discussions
 
