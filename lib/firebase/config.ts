@@ -17,8 +17,11 @@ const isFirebaseConfigured = requiredConfigKeys.every(key =>
   process.env[key] && process.env[key] !== 'your_firebase_api_key' && process.env[key] !== 'your_project_id'
 );
 
+// Firebase client configuration
+// Note: These keys are meant to be public (per Firebase documentation)
+// They identify your Firebase project but don't provide access without proper authentication
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY, // Public identifier, not a secret
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,

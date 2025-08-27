@@ -117,12 +117,16 @@ export const signInWithEmail = async (
 
 // Sign in with Google
 export const signInWithGoogle = async (): Promise<UserCredential> => {
+  if (!auth || !isFirebaseConfigured) {
+    throw new Error('Firebase authentication is not configured');
+  }
+
   try {
     const userCredential = await signInWithPopup(auth, googleProvider);
-    
+
     // Create or update user profile
     await createUserProfile(userCredential.user);
-    
+
     return userCredential;
   } catch (error) {
     console.error('Error signing in with Google:', error);
@@ -132,6 +136,10 @@ export const signInWithGoogle = async (): Promise<UserCredential> => {
 
 // Sign out
 export const signOutUser = async (): Promise<void> => {
+  if (!auth || !isFirebaseConfigured) {
+    throw new Error('Firebase authentication is not configured');
+  }
+
   try {
     await signOut(auth);
   } catch (error) {
@@ -142,6 +150,10 @@ export const signOutUser = async (): Promise<void> => {
 
 // Send password reset email
 export const sendPasswordReset = async (email: string): Promise<void> => {
+  if (!auth || !isFirebaseConfigured) {
+    throw new Error('Firebase authentication is not configured');
+  }
+
   try {
     await sendPasswordResetEmail(auth, email);
   } catch (error) {
@@ -155,6 +167,10 @@ export const updateUserProfile = async (
   userId: string,
   updates: Partial<UserProfile>
 ): Promise<void> => {
+  if (!db || !isFirebaseConfigured) {
+    throw new Error('Firebase is not configured');
+  }
+
   try {
     const userRef = doc(db, 'users', userId);
     await updateDoc(userRef, {
@@ -171,12 +187,16 @@ export const updateUserProfile = async (
 export const updateAuthProfile = async (
   updates: { displayName?: string; photoURL?: string }
 ): Promise<void> => {
+  if (!auth || !isFirebaseConfigured) {
+    throw new Error('Firebase authentication is not configured');
+  }
+
   try {
     const user = auth.currentUser;
     if (!user) throw new Error('No authenticated user');
-    
+
     await updateProfile(user, updates);
-    
+
     // Also update in Firestore
     await updateUserProfile(user.uid, updates);
   } catch (error) {
@@ -187,12 +207,16 @@ export const updateAuthProfile = async (
 
 // Update email
 export const updateUserEmail = async (newEmail: string): Promise<void> => {
+  if (!auth || !isFirebaseConfigured) {
+    throw new Error('Firebase authentication is not configured');
+  }
+
   try {
     const user = auth.currentUser;
     if (!user) throw new Error('No authenticated user');
-    
+
     await updateEmail(user, newEmail);
-    
+
     // Update in Firestore
     await updateUserProfile(user.uid, { email: newEmail });
   } catch (error) {
@@ -203,10 +227,14 @@ export const updateUserEmail = async (newEmail: string): Promise<void> => {
 
 // Update password
 export const updateUserPassword = async (newPassword: string): Promise<void> => {
+  if (!auth || !isFirebaseConfigured) {
+    throw new Error('Firebase authentication is not configured');
+  }
+
   try {
     const user = auth.currentUser;
     if (!user) throw new Error('No authenticated user');
-    
+
     await updatePassword(user, newPassword);
   } catch (error) {
     console.error('Error updating password:', error);
@@ -219,10 +247,14 @@ export const reauthenticateUser = async (
   email: string,
   password: string
 ): Promise<UserCredential> => {
+  if (!auth || !isFirebaseConfigured) {
+    throw new Error('Firebase authentication is not configured');
+  }
+
   try {
     const user = auth.currentUser;
     if (!user) throw new Error('No authenticated user');
-    
+
     const credential = EmailAuthProvider.credential(email, password);
     return await reauthenticateWithCredential(user, credential);
   } catch (error) {
@@ -233,19 +265,26 @@ export const reauthenticateUser = async (
 
 // Get current user
 export const getCurrentUser = (): User | null => {
+  if (!auth || !isFirebaseConfigured) {
+    return null;
+  }
   return auth.currentUser;
 };
 
 // Get user profile from Firestore
 export const getUserProfile = async (userId: string): Promise<UserProfile | null> => {
+  if (!db || !isFirebaseConfigured) {
+    throw new Error('Firebase is not configured');
+  }
+
   try {
     const userRef = doc(db, 'users', userId);
     const userSnap = await getDoc(userRef);
-    
+
     if (userSnap.exists()) {
       return userSnap.data() as UserProfile;
     }
-    
+
     return null;
   } catch (error) {
     console.error('Error getting user profile:', error);
@@ -257,21 +296,32 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
 export const subscribeToAuthState = (
   callback: (user: User | null) => void
 ): (() => void) => {
+  if (!auth || !isFirebaseConfigured) {
+    // Return a no-op unsubscribe function
+    return () => {};
+  }
   return onAuthStateChanged(auth, callback);
 };
 
 // Check if email is verified
 export const isEmailVerified = (): boolean => {
+  if (!auth || !isFirebaseConfigured) {
+    return false;
+  }
   const user = auth.currentUser;
   return user ? user.emailVerified : false;
 };
 
 // Resend verification email
 export const resendVerificationEmail = async (): Promise<void> => {
+  if (!auth || !isFirebaseConfigured) {
+    throw new Error('Firebase authentication is not configured');
+  }
+
   try {
     const user = auth.currentUser;
     if (!user) throw new Error('No authenticated user');
-    
+
     await sendEmailVerification(user);
   } catch (error) {
     console.error('Error resending verification email:', error);
@@ -281,14 +331,18 @@ export const resendVerificationEmail = async (): Promise<void> => {
 
 // Delete user account
 export const deleteUserAccount = async (): Promise<void> => {
+  if (!auth || !isFirebaseConfigured) {
+    throw new Error('Firebase authentication is not configured');
+  }
+
   try {
     const user = auth.currentUser;
     if (!user) throw new Error('No authenticated user');
-    
+
     // Delete user data from Firestore
     // Note: In production, you might want to use Cloud Functions
     // to handle cascading deletes of user data
-    
+
     // Delete the user account
     await user.delete();
   } catch (error) {

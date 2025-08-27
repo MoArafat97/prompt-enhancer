@@ -25,12 +25,10 @@ import { SavedPrompt, EnhancementHistory } from './types';
 // Collection references - only initialize on client side
 let promptsCollection: any = null;
 let enhancementHistoryCollection: any = null;
-let usersCollection: any = null;
 
 if (typeof window !== 'undefined' && db) {
   promptsCollection = collection(db, 'prompts');
   enhancementHistoryCollection = collection(db, 'enhancement_results');
-  usersCollection = collection(db, 'users');
 }
 
 // Prompts Collection Operations
@@ -267,14 +265,18 @@ export const getUserEnhancementHistory = async (
 
 // Batch operations for better performance
 export const batchDeletePrompts = async (promptIds: string[]): Promise<void> => {
+  if (!db) {
+    throw new Error('Firebase is not configured');
+  }
+
   try {
     const batch: WriteBatch = writeBatch(db);
-    
+
     promptIds.forEach((promptId) => {
       const promptRef = doc(promptsCollection, promptId);
       batch.delete(promptRef);
     });
-    
+
     await batch.commit();
   } catch (error) {
     console.error('Error batch deleting prompts:', error);
@@ -285,9 +287,13 @@ export const batchDeletePrompts = async (promptIds: string[]): Promise<void> => 
 export const batchUpdatePrompts = async (
   updates: Array<{ id: string; data: Partial<SavedPrompt> }>
 ): Promise<void> => {
+  if (!db) {
+    throw new Error('Firebase is not configured');
+  }
+
   try {
     const batch: WriteBatch = writeBatch(db);
-    
+
     updates.forEach(({ id, data }) => {
       const promptRef = doc(promptsCollection, id);
       batch.update(promptRef, {
@@ -295,7 +301,7 @@ export const batchUpdatePrompts = async (
         updatedAt: serverTimestamp(),
       });
     });
-    
+
     await batch.commit();
   } catch (error) {
     console.error('Error batch updating prompts:', error);
