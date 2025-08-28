@@ -14,6 +14,7 @@ import { Auth } from 'firebase/auth';
 import { Firestore } from 'firebase/firestore';
 import { Analytics } from 'firebase/analytics';
 import { firebaseInitService, initializeFirebase as initService } from './initialization-service';
+import { validateFirebaseConfig } from './vercel-env-fix';
 
 // Module-level state (lazy-loaded, never initialized at import time)
 let _cachedStatus: {
@@ -37,7 +38,6 @@ export function isFirebaseConfigured(): boolean {
   }
 
   // Use enhanced Vercel environment variable validation
-  const { validateFirebaseConfig } = require('./vercel-env-fix');
   const validation = validateFirebaseConfig();
 
   // Cache the result
