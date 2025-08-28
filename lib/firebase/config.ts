@@ -30,38 +30,53 @@ const CONFIG_CACHE_TTL = 5000; // 5 seconds
  */
 export function isFirebaseConfigured(): boolean {
   const now = Date.now();
-  
+
   // Return cached result if still valid
   if (_cachedStatus && (now - _cachedStatus.lastChecked) < CONFIG_CACHE_TTL) {
     return _cachedStatus.isConfigured;
   }
-  
+
   // Check environment variables
   const requiredVars = [
     'NEXT_PUBLIC_FIREBASE_API_KEY',
-    'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN', 
+    'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
     'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
     'NEXT_PUBLIC_FIREBASE_APP_ID'
   ];
-  
+
   const errors: string[] = [];
   const missingVars: string[] = [];
-  
+
+  // Debug logging for environment variables
+  console.log('🔍 Checking Firebase environment variables:', {
+    nodeEnv: process.env.NODE_ENV,
+    isVercel: !!process.env.VERCEL,
+    vercelEnv: process.env.VERCEL_ENV,
+    allFirebaseKeys: Object.keys(process.env).filter(key => key.startsWith('NEXT_PUBLIC_FIREBASE')),
+    timestamp: new Date().toISOString()
+  });
+
   for (const varName of requiredVars) {
     const value = process.env[varName];
+    console.log(`🔍 ${varName}:`, {
+      hasValue: !!value,
+      valueLength: value?.length || 0,
+      preview: value ? `${value.substring(0, 10)}...` : 'MISSING'
+    });
+
     if (!value) {
       missingVars.push(varName);
     } else if (value === 'your_firebase_api_key' || value === 'your_project_id') {
       errors.push(`${varName} has placeholder value`);
     }
   }
-  
+
   if (missingVars.length > 0) {
     errors.push(`Missing environment variables: ${missingVars.join(', ')}`);
   }
-  
+
   const isConfigured = errors.length === 0;
-  
+
   // Cache the result
   _cachedStatus = {
     isConfigured,
@@ -69,11 +84,14 @@ export function isFirebaseConfigured(): boolean {
     configValid: isConfigured,
     errors
   };
-  
-  if (!isConfigured && typeof window !== 'undefined') {
+
+  if (!isConfigured) {
     console.warn('🚨 Firebase configuration issues:', errors);
+    console.warn('🚨 Missing variables:', missingVars);
+  } else {
+    console.log('✅ Firebase configuration is valid');
   }
-  
+
   return isConfigured;
 }
 

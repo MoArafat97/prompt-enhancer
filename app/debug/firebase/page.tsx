@@ -5,6 +5,7 @@ import { isFirebaseConfigured, getFirebaseStatus, ensureFirebaseClient } from '@
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { FirebaseInitializationTest } from '@/components/debug/FirebaseInitializationTest';
+import FirebaseEnvDebug from '@/components/debug/FirebaseEnvDebug';
 
 interface FirebaseStatus {
   isConfigured: boolean;
@@ -224,6 +225,12 @@ export default function FirebaseDebugPage() {
               </div>
             </div>
           )}
+        </div>
+
+        {/* Environment Debug */}
+        <div className="bg-surface-secondary rounded-lg p-6 mb-6">
+          <h2 className="text-xl font-semibold mb-4">Environment Debug</h2>
+          <FirebaseEnvDebug />
         </div>
 
         {/* Comprehensive Firebase Initialization Test */}
