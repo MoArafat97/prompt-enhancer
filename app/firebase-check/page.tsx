@@ -1,6 +1,9 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { getFirebaseStatus, reinitializeFirebase } from '@/lib/firebase/config';
+import { firebaseInitService } from '@/lib/firebase/initialization-service';
+import { Button } from '@/components/ui/button';
 
 interface EnvCheck {
   key: string;
@@ -9,9 +12,60 @@ interface EnvCheck {
   isPlaceholder: boolean;
 }
 
+interface ServerDiagnostic {
+  environment: string;
+  platform?: {
+    isVercel: boolean;
+    vercelEnv: string;
+    region: string;
+  };
+  envVars: Record<string, any>;
+  requiredVarsPresent: boolean;
+}
+
 export default function FirebaseCheckPage() {
   const [envChecks, setEnvChecks] = useState<EnvCheck[]>([]);
   const [isClient, setIsClient] = useState(false);
+  const [firebaseStatus, setFirebaseStatus] = useState<any>(null);
+  const [serverDiagnostic, setServerDiagnostic] = useState<ServerDiagnostic | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const runDiagnostic = async () => {
+    setLoading(true);
+    try {
+      // Get Firebase status
+      const status = getFirebaseStatus();
+      setFirebaseStatus(status);
+
+      // Fetch server diagnostic
+      try {
+        const response = await fetch('/api/debug/firebase?token=debug123');
+        if (response.ok) {
+          const serverData = await response.json();
+          setServerDiagnostic(serverData);
+        }
+      } catch (error) {
+        console.warn('Failed to fetch server diagnostic:', error);
+      }
+    } catch (error) {
+      console.error('Diagnostic failed:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReinitialize = async () => {
+    setLoading(true);
+    try {
+      console.log('🔄 Forcing Firebase re-initialization...');
+      await firebaseInitService.reinitialize();
+      await runDiagnostic();
+    } catch (error) {
+      console.error('Reinitialization failed:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     setIsClient(true);
@@ -37,6 +91,9 @@ export default function FirebaseCheckPage() {
     });
 
     setEnvChecks(checks);
+    
+    // Run initial diagnostic
+    runDiagnostic();
   }, []);
 
   if (!isClient) {
@@ -48,9 +105,19 @@ export default function FirebaseCheckPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8 text-gray-900 dark:text-white">
-          Firebase Environment Variables Check
-        </h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            🔧 Firebase Diagnostics
+          </h1>
+          <div className="space-x-4">
+            <Button onClick={runDiagnostic} disabled={loading}>
+              {loading ? 'Running...' : '🔄 Refresh'}
+            </Button>
+            <Button onClick={handleReinitialize} variant="outline" disabled={loading}>
+              🔄 Reinitialize Firebase
+            </Button>
+          </div>
+        </div>
         
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
           <div className="flex items-center mb-4">

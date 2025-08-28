@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { auth, db, isFirebaseConfigured } from '@/lib/firebase/config';
+import { isFirebaseConfigured, ensureFirebaseClient, getFirebaseInstances } from '@/lib/firebase/config';
 
 interface FirebaseStatus {
   isConfigured: boolean;
@@ -28,15 +28,18 @@ export function SimpleFirebaseStatus() {
 
       const errors: string[] = [];
       
-      if (!isFirebaseConfigured) {
+      // Get current Firebase instances first
+      const instances = getFirebaseInstances();
+      
+      if (!isFirebaseConfigured()) {
         errors.push('Firebase not configured');
       }
       
-      if (!auth) {
+      if (!instances.auth) {
         errors.push('Auth not initialized');
       }
       
-      if (!db) {
+      if (!instances.db) {
         errors.push('Firestore not initialized');
       }
 
@@ -45,11 +48,11 @@ export function SimpleFirebaseStatus() {
           errors.push(`Missing ${key}`);
         }
       });
-
+      
       setStatus({
-        isConfigured: isFirebaseConfigured,
-        authInitialized: !!auth,
-        dbInitialized: !!db,
+        isConfigured: isFirebaseConfigured(),
+        authInitialized: !!instances.auth,
+        dbInitialized: !!instances.db,
         envVarsStatus: envVars,
         errors,
       });

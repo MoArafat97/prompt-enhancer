@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { auth, db, isFirebaseConfigured } from '@/lib/firebase/config';
+import { isFirebaseConfigured, getFirebaseStatus, ensureFirebaseClient } from '@/lib/firebase/config';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/contexts/AuthContext';
+import { FirebaseInitializationTest } from '@/components/debug/FirebaseInitializationTest';
 
 interface FirebaseStatus {
   isConfigured: boolean;
@@ -21,7 +22,7 @@ export default function FirebaseDebugPage() {
   const { signInWithGoogle, user } = useAuth();
 
   useEffect(() => {
-    const checkFirebaseStatus = () => {
+    const checkFirebaseStatus = async () => {
       const envVars = {
         NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
         NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -41,23 +42,29 @@ export default function FirebaseDebugPage() {
         }
       });
 
-      // Check Firebase initialization
-      if (!isFirebaseConfigured) {
+      // Check Firebase configuration using new system
+      const configured = isFirebaseConfigured();
+      if (!configured) {
         errors.push('Firebase configuration is incomplete');
       }
 
-      if (!auth) {
-        errors.push('Firebase Auth not initialized');
-      }
-
-      if (!db) {
-        errors.push('Firebase Firestore not initialized');
+      // Try to initialize Firebase to get service status
+      let authInitialized = false;
+      let dbInitialized = false;
+      
+      try {
+        await ensureFirebaseClient();
+        const fullStatus = getFirebaseStatus();
+        authInitialized = fullStatus.service.instances.hasAuth;
+        dbInitialized = fullStatus.service.instances.hasDb;
+      } catch (error) {
+        errors.push(`Firebase initialization failed: ${error}`);
       }
 
       setStatus({
-        isConfigured: isFirebaseConfigured,
-        authInitialized: !!auth,
-        dbInitialized: !!db,
+        isConfigured: configured,
+        authInitialized,
+        dbInitialized,
         envVars,
         errors,
         windowDefined: typeof window !== 'undefined',
@@ -74,44 +81,12 @@ export default function FirebaseDebugPage() {
 
   const testGoogleSignIn = async () => {
     try {
-      addTestResult('Starting Google sign-in test...');
-      
-      if (!auth) {
-        addTestResult('❌ Firebase Auth not initialized');
-        return;
-      }
-
-      addTestResult('✅ Firebase Auth is initialized');
-      
-      // Test using the auth context
+      addTestResult('Starting Google sign-in test via AuthContext...');
       await signInWithGoogle();
       addTestResult('✅ Google sign-in successful via AuthContext');
     } catch (error: any) {
       addTestResult(`❌ Google sign-in error: ${error.message || error}`);
       console.error('Google sign-in error:', error);
-    }
-  };
-
-  const testDirectGoogleSignIn = async () => {
-    try {
-      addTestResult('Starting direct Google sign-in test...');
-      
-      if (!auth) {
-        addTestResult('❌ Firebase Auth not initialized');
-        return;
-      }
-
-      // Import dynamically to avoid SSR issues
-      const { GoogleAuthProvider, signInWithPopup } = await import('firebase/auth');
-      const provider = new GoogleAuthProvider();
-      
-      addTestResult('✅ GoogleAuthProvider created');
-      
-      const result = await signInWithPopup(auth, provider);
-      addTestResult(`✅ Direct Google sign-in successful: ${result.user.email}`);
-    } catch (error: any) {
-      addTestResult(`❌ Direct Google sign-in error: ${error.message || error}`);
-      console.error('Direct Google sign-in error:', error);
     }
   };
 
@@ -122,7 +97,7 @@ export default function FirebaseDebugPage() {
   if (!status) {
     return (
       <div className="min-h-screen bg-background text-text-primary p-8">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           <h1 className="text-3xl font-bold mb-8">Firebase Debug</h1>
           <div>Loading Firebase status...</div>
         </div>
@@ -132,7 +107,7 @@ export default function FirebaseDebugPage() {
 
   return (
     <div className="min-h-screen bg-background text-text-primary p-8">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <h1 className="text-3xl font-bold mb-8">Firebase Debug Information</h1>
         
         {/* Current User */}
@@ -216,9 +191,9 @@ export default function FirebaseDebugPage() {
           </div>
         </div>
 
-        {/* Test Buttons */}
+        {/* Quick Test Buttons */}
         <div className="bg-surface-secondary rounded-lg p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4">Authentication Tests</h2>
+          <h2 className="text-xl font-semibold mb-4">Quick Authentication Test</h2>
           <div className="flex flex-wrap gap-4 mb-4">
             <Button
               onClick={testGoogleSignIn}
@@ -226,14 +201,6 @@ export default function FirebaseDebugPage() {
               variant="outline"
             >
               Test Google Sign-In (AuthContext)
-            </Button>
-            
-            <Button
-              onClick={testDirectGoogleSignIn}
-              disabled={!status.authInitialized}
-              variant="outline"
-            >
-              Test Direct Google Sign-In
             </Button>
             
             <Button
@@ -257,6 +224,12 @@ export default function FirebaseDebugPage() {
               </div>
             </div>
           )}
+        </div>
+
+        {/* Comprehensive Firebase Initialization Test */}
+        <div className="bg-surface-secondary rounded-lg p-6">
+          <h2 className="text-xl font-semibold mb-4">Comprehensive Firebase Testing</h2>
+          <FirebaseInitializationTest />
         </div>
       </div>
     </div>

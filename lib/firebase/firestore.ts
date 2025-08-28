@@ -19,17 +19,30 @@ import {
   WriteBatch,
   writeBatch,
 } from 'firebase/firestore';
-import { db } from './config';
+import { ensureFirebaseClient, getFirebaseInstances } from './config';
 import { SavedPrompt, EnhancementHistory } from './types';
 
-// Collection references - only initialize on client side
-let promptsCollection: any = null;
-let enhancementHistoryCollection: any = null;
+// Helper function to get Firestore instance
+const getDb = async () => {
+  if (typeof window === 'undefined') return null;
+  
+  const initSuccess = await ensureFirebaseClient();
+  if (!initSuccess) return null;
+  
+  const { db } = getFirebaseInstances();
+  return db;
+};
 
-if (typeof window !== 'undefined' && db) {
-  promptsCollection = collection(db, 'prompts');
-  enhancementHistoryCollection = collection(db, 'enhancement_results');
-}
+// Helper function to get collection references
+const getCollections = async () => {
+  const db = await getDb();
+  if (!db) return { promptsCollection: null, enhancementHistoryCollection: null };
+  
+  return {
+    promptsCollection: collection(db, 'prompts'),
+    enhancementHistoryCollection: collection(db, 'enhancement_results'),
+  };
+};
 
 // Prompts Collection Operations
 export const savePrompt = async (
@@ -37,6 +50,7 @@ export const savePrompt = async (
   promptData: Omit<SavedPrompt, 'id' | 'createdAt' | 'updatedAt'>
 ): Promise<string> => {
   try {
+    const { promptsCollection } = await getCollections();
     if (!promptsCollection) {
       throw new Error('Firestore not initialized');
     }

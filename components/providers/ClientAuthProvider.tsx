@@ -14,7 +14,7 @@ export function ClientAuthProvider({ children }: ClientAuthProviderProps) {
   useEffect(() => {
     setIsClient(true);
     // Proactively initialize Firebase client SDK on the browser
-    if (typeof window !== 'undefined' && isFirebaseConfigured) {
+    if (typeof window !== 'undefined' && isFirebaseConfigured()) {
       try {
         ensureFirebaseClient();
       } catch (e) {

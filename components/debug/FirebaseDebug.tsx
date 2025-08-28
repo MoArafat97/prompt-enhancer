@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { auth, db, isFirebaseConfigured } from '@/lib/firebase/config';
+import { isFirebaseConfigured, getFirebaseStatus, ensureFirebaseClient, getFirebaseInstances } from '@/lib/firebase/config';
 import { Button } from '@/components/ui/button';
 
 interface FirebaseStatus {
@@ -18,6 +18,9 @@ export function FirebaseDebug() {
 
   useEffect(() => {
     const checkFirebaseStatus = () => {
+      // Use the enhanced status from config
+      const firebaseStatus = getFirebaseStatus();
+      
       const envVars = {
         NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
         NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -26,44 +29,63 @@ export function FirebaseDebug() {
         NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
         NEXT_PUBLIC_FIREBASE_APP_ID: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
         NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+        NODE_ENV: process.env.NODE_ENV,
+        VERCEL_ENV: process.env.VERCEL_ENV,
       };
 
       const errors: string[] = [];
 
       // Check if environment variables are set
       Object.entries(envVars).forEach(([key, value]) => {
-        if (!value || value === 'your_firebase_api_key' || value === 'your_project_id') {
+        if (key.startsWith('NEXT_PUBLIC_FIREBASE_') && (!value || value === 'your_firebase_api_key' || value === 'your_project_id')) {
           errors.push(`Missing or invalid ${key}`);
         }
       });
 
-      // Check Firebase initialization
-      if (!isFirebaseConfigured) {
+      // Add errors from Firebase status
+      if (firebaseStatus.configErrors && firebaseStatus.configErrors.length > 0) {
+        errors.push(...firebaseStatus.configErrors);
+      }
+
+      if (!firebaseStatus.isConfigured) {
         errors.push('Firebase configuration is incomplete');
       }
 
-      if (!auth) {
+      if (!firebaseStatus.service.instances.hasAuth) {
         errors.push('Firebase Auth not initialized');
       }
 
-      if (!db) {
+      if (!firebaseStatus.service.instances.hasDb) {
         errors.push('Firebase Firestore not initialized');
       }
 
       setStatus({
-        isConfigured: isFirebaseConfigured,
-        authInitialized: !!auth,
-        dbInitialized: !!db,
+        isConfigured: firebaseStatus.isConfigured,
+        authInitialized: firebaseStatus.service.instances.hasAuth,
+        dbInitialized: firebaseStatus.service.instances.hasDb,
         envVars,
         errors,
       });
     };
 
     checkFirebaseStatus();
+    
+    // Recheck every 5 seconds to catch delayed initialization
+    const interval = setInterval(checkFirebaseStatus, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const testGoogleSignIn = async () => {
     try {
+      // Ensure Firebase is ready first
+      const initSuccess = await ensureFirebaseClient();
+      if (!initSuccess) {
+        console.error('Firebase client initialization failed');
+        return;
+      }
+      
+      const instances = getFirebaseInstances();
+      const auth = instances.auth;
       if (!auth) {
         console.error('Firebase Auth not initialized');
         return;
@@ -147,14 +169,45 @@ export function FirebaseDebug() {
               </div>
             </div>
 
-            <div className="pt-2 border-t">
+            <div className="pt-2 border-t space-y-2">
+              <Button
+                onClick={() => {
+                  console.log('🔄 Manual Firebase initialization attempt...');
+                  ensureFirebaseClient();
+                  // Refresh status after attempt
+                  setTimeout(() => setStatus(prev => ({ ...prev!, firebaseStatus: getFirebaseStatus() })), 1000);
+                }}
+                size="sm"
+                variant="outline"
+                className="w-full"
+              >
+                🔄 Retry Firebase Init
+              </Button>
+              
               <Button
                 onClick={testGoogleSignIn}
                 size="sm"
                 disabled={!status.authInitialized}
                 className="w-full"
               >
-                Test Google Sign-In
+                🧪 Test Google Sign-In
+              </Button>
+              
+              <Button
+                onClick={() => {
+                  console.log('📋 Current Firebase Status:', getFirebaseStatus());
+                  console.log('📋 Environment Variables:', {
+                    ...status.envVars,
+                    timestamp: new Date().toISOString(),
+                    userAgent: navigator.userAgent,
+                    url: window.location.href
+                  });
+                }}
+                size="sm"
+                variant="outline"
+                className="w-full"
+              >
+                📋 Log Full Debug Info
               </Button>
             </div>
           </div>

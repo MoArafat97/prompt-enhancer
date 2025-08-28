@@ -17,7 +17,7 @@ import {
   EmailAuthProvider,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db, isFirebaseConfigured, ensureFirebaseClient } from './config';
+import { isFirebaseConfigured, ensureFirebaseClient, getFirebaseStatus, getFirebaseInstances } from './config';
 import { UserProfile } from './types';
 import * as fallbackAuth from './auth-fallback';
 
@@ -26,9 +26,15 @@ const googleProvider = new GoogleAuthProvider();
 
 // Helper function to create user profile
 export const createUserProfile = async (user: User): Promise<UserProfile> => {
-  if (!db) {
-    if (typeof window !== 'undefined') ensureFirebaseClient();
+  // Ensure Firebase is initialized
+  if (typeof window !== 'undefined') {
+    const initSuccess = await ensureFirebaseClient();
+    if (!initSuccess) {
+      throw new Error('Firebase Firestore initialization failed');
+    }
   }
+  
+  const { db } = getFirebaseInstances();
   if (!db) {
     throw new Error('Firebase Firestore is not initialized on client');
   }
@@ -72,8 +78,19 @@ export const signUpWithEmail = async (
   password: string,
   displayName: string
 ): Promise<UserCredential> => {
-  if (!auth || !isFirebaseConfigured) {
+  if (!isFirebaseConfigured()) {
     throw new Error('Firebase authentication is not configured');
+  }
+  
+  // Ensure Firebase client is ready
+  const initSuccess = await ensureFirebaseClient();
+  if (!initSuccess) {
+    throw new Error('Firebase authentication initialization failed');
+  }
+  
+  const { auth } = getFirebaseInstances();
+  if (!auth) {
+    throw new Error('Firebase Auth is not initialized');
   }
 
   try {
@@ -102,7 +119,18 @@ export const signInWithEmail = async (
   email: string,
   password: string
 ): Promise<UserCredential> => {
-  if (!auth || !isFirebaseConfigured) {
+  if (!isFirebaseConfigured()) {
+    return fallbackAuth.signInWithEmail(email, password);
+  }
+  
+  // Ensure Firebase client is ready
+  const initSuccess = await ensureFirebaseClient();
+  if (!initSuccess) {
+    return fallbackAuth.signInWithEmail(email, password);
+  }
+  
+  const { auth } = getFirebaseInstances();
+  if (!auth) {
     return fallbackAuth.signInWithEmail(email, password);
   }
 
@@ -121,13 +149,35 @@ export const signInWithEmail = async (
 
 // Sign in with Google
 export const signInWithGoogle = async (): Promise<UserCredential> => {
-  // Ensure client SDK is initialized if possible
-  if (typeof window !== 'undefined' && !auth) {
-    ensureFirebaseClient();
+  console.log('🔐 Starting Google sign-in process...');
+  
+  // Verify Firebase is configured
+  if (!isFirebaseConfigured()) {
+    const status = getFirebaseStatus();
+    console.error('❌ Firebase is not configured:', status.configErrors);
+    throw new Error(`Firebase is not configured: ${status.configErrors.join(', ')}`);
   }
+  
+  // Ensure client SDK is initialized
+  console.log('🔍 Ensuring Firebase client is ready for Google sign-in...');
+  const initSuccess = await ensureFirebaseClient();
+  if (!initSuccess) {
+    const status = getFirebaseStatus();
+    console.error('❌ Firebase initialization failed:', status);
+    throw new Error(`Firebase Auth initialization failed. Check environment variables and try again.`);
+  }
+  
+  const { auth } = getFirebaseInstances();
   if (!auth) {
+    const status = getFirebaseStatus();
+    console.error('❌ Firebase Auth not available after initialization:', status);
     throw new Error('Firebase Auth is not initialized on the client');
   }
+  
+  console.log('✅ Firebase Auth ready for Google sign-in:', {
+    authDomain: auth.config?.authDomain,
+    apiKey: auth.config?.apiKey ? `${auth.config.apiKey.substring(0, 10)}...` : 'MISSING'
+  });
 
   try {
     // Try popup first
@@ -153,8 +203,13 @@ export const signInWithGoogle = async (): Promise<UserCredential> => {
 
 // Sign out
 export const signOutUser = async (): Promise<void> => {
-  if (!auth || !isFirebaseConfigured) {
+  if (!isFirebaseConfigured()) {
     throw new Error('Firebase authentication is not configured');
+  }
+  
+  const { auth } = getFirebaseInstances();
+  if (!auth) {
+    throw new Error('Firebase authentication is not initialized');
   }
 
   try {
@@ -167,8 +222,13 @@ export const signOutUser = async (): Promise<void> => {
 
 // Send password reset email
 export const sendPasswordReset = async (email: string): Promise<void> => {
-  if (!auth || !isFirebaseConfigured) {
+  if (!isFirebaseConfigured()) {
     throw new Error('Firebase authentication is not configured');
+  }
+  
+  const { auth } = getFirebaseInstances();
+  if (!auth) {
+    throw new Error('Firebase authentication is not initialized');
   }
 
   try {
@@ -184,8 +244,13 @@ export const updateUserProfile = async (
   userId: string,
   updates: Partial<UserProfile>
 ): Promise<void> => {
-  if (!db || !isFirebaseConfigured) {
+  if (!isFirebaseConfigured()) {
     throw new Error('Firebase is not configured');
+  }
+  
+  const { db } = getFirebaseInstances();
+  if (!db) {
+    throw new Error('Firebase Firestore is not initialized');
   }
 
   try {
@@ -204,8 +269,13 @@ export const updateUserProfile = async (
 export const updateAuthProfile = async (
   updates: { displayName?: string; photoURL?: string }
 ): Promise<void> => {
-  if (!auth || !isFirebaseConfigured) {
+  if (!isFirebaseConfigured()) {
     throw new Error('Firebase authentication is not configured');
+  }
+  
+  const { auth } = getFirebaseInstances();
+  if (!auth) {
+    throw new Error('Firebase authentication is not initialized');
   }
 
   try {
@@ -224,8 +294,13 @@ export const updateAuthProfile = async (
 
 // Update email
 export const updateUserEmail = async (newEmail: string): Promise<void> => {
-  if (!auth || !isFirebaseConfigured) {
+  if (!isFirebaseConfigured()) {
     throw new Error('Firebase authentication is not configured');
+  }
+  
+  const { auth } = getFirebaseInstances();
+  if (!auth) {
+    throw new Error('Firebase authentication is not initialized');
   }
 
   try {
@@ -244,8 +319,13 @@ export const updateUserEmail = async (newEmail: string): Promise<void> => {
 
 // Update password
 export const updateUserPassword = async (newPassword: string): Promise<void> => {
-  if (!auth || !isFirebaseConfigured) {
+  if (!isFirebaseConfigured()) {
     throw new Error('Firebase authentication is not configured');
+  }
+  
+  const { auth } = getFirebaseInstances();
+  if (!auth) {
+    throw new Error('Firebase authentication is not initialized');
   }
 
   try {
@@ -264,8 +344,13 @@ export const reauthenticateUser = async (
   email: string,
   password: string
 ): Promise<UserCredential> => {
-  if (!auth || !isFirebaseConfigured) {
+  if (!isFirebaseConfigured()) {
     throw new Error('Firebase authentication is not configured');
+  }
+  
+  const { auth } = getFirebaseInstances();
+  if (!auth) {
+    throw new Error('Firebase authentication is not initialized');
   }
 
   try {
@@ -282,16 +367,27 @@ export const reauthenticateUser = async (
 
 // Get current user
 export const getCurrentUser = (): User | null => {
-  if (!auth || !isFirebaseConfigured) {
+  if (!isFirebaseConfigured()) {
     return null;
   }
+  
+  const { auth } = getFirebaseInstances();
+  if (!auth) {
+    return null;
+  }
+  
   return auth.currentUser;
 };
 
 // Get user profile from Firestore
 export const getUserProfile = async (userId: string): Promise<UserProfile | null> => {
-  if (!db || !isFirebaseConfigured) {
+  if (!isFirebaseConfigured()) {
     throw new Error('Firebase is not configured');
+  }
+  
+  const { db } = getFirebaseInstances();
+  if (!db) {
+    throw new Error('Firebase Firestore is not initialized');
   }
 
   try {
@@ -309,37 +405,112 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
   }
 };
 
-// Subscribe to auth state changes
+// Subscribe to auth state changes with async initialization
 export const subscribeToAuthState = (
   callback: (user: User | null) => void
 ): (() => void) => {
-  if (!auth && typeof window !== 'undefined') {
-    // Try to initialize lazily
-    ensureFirebaseClient();
-  }
-  if (!auth) {
-    // Immediately signal "no user" so the UI can leave the loading state
-    if (typeof window !== 'undefined') {
-      setTimeout(() => callback(null), 0);
+  console.log('🔍 Setting up auth state subscription...');
+  
+  let unsubscribe: (() => void) | null = null;
+  let isUnsubscribed = false;
+  
+  const setupSubscription = async () => {
+    if (isUnsubscribed) return;
+    
+    // Check if Firebase is configured first
+    if (!isFirebaseConfigured()) {
+      console.log('ℹ️ Firebase not configured, providing null user immediately');
+      if (typeof window !== 'undefined' && !isUnsubscribed) {
+        setTimeout(() => {
+          if (!isUnsubscribed) {
+            console.log('🔄 Calling auth callback with null user (not configured)');
+            callback(null);
+          }
+        }, 0);
+      }
+      return;
     }
-    return () => {};
-  }
-  return onAuthStateChanged(auth, callback);
+    
+    // Try to ensure Firebase is initialized
+    if (typeof window !== 'undefined') {
+      console.log('🔄 Firebase configured, attempting initialization...');
+      const initSuccess = await ensureFirebaseClient();
+      if (!initSuccess) {
+        const status = getFirebaseStatus();
+        console.warn('⚠️ Firebase initialization failed for auth state subscription:', status);
+        if (!isUnsubscribed) {
+          callback(null);
+        }
+        return;
+      }
+    }
+    
+    if (isUnsubscribed) return;
+    
+    const { auth } = getFirebaseInstances();
+    if (!auth) {
+      console.log('ℹ️ No auth available after initialization, providing null user');
+      if (typeof window !== 'undefined' && !isUnsubscribed) {
+        setTimeout(() => {
+          if (!isUnsubscribed) {
+            console.log('🔄 Calling auth callback with null user (no auth)');
+            callback(null);
+          }
+        }, 0);
+      }
+      return;
+    }
+    
+    console.log('✅ Setting up real auth state listener');
+    unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!isUnsubscribed) {
+        console.log('🔄 Auth state changed:', user ? `User: ${user.email}` : 'No user');
+        callback(user);
+      }
+    });
+  };
+  
+  // Start setup asynchronously
+  setupSubscription().catch(error => {
+    console.error('❌ Auth state subscription setup failed:', error);
+    if (!isUnsubscribed) {
+      callback(null);
+    }
+  });
+  
+  return () => {
+    console.log('🔄 Unsubscribing from auth state changes');
+    isUnsubscribed = true;
+    if (unsubscribe) {
+      unsubscribe();
+    }
+  };
 };
 
 // Check if email is verified
 export const isEmailVerified = (): boolean => {
-  if (!auth || !isFirebaseConfigured) {
+  if (!isFirebaseConfigured()) {
     return false;
   }
+  
+  const { auth } = getFirebaseInstances();
+  if (!auth) {
+    return false;
+  }
+  
   const user = auth.currentUser;
   return user ? user.emailVerified : false;
 };
 
 // Resend verification email
 export const resendVerificationEmail = async (): Promise<void> => {
-  if (!auth || !isFirebaseConfigured) {
+  if (!isFirebaseConfigured()) {
     throw new Error('Firebase authentication is not configured');
+  }
+  
+  const { auth } = getFirebaseInstances();
+  if (!auth) {
+    throw new Error('Firebase authentication is not initialized');
   }
 
   try {
@@ -355,8 +526,13 @@ export const resendVerificationEmail = async (): Promise<void> => {
 
 // Delete user account
 export const deleteUserAccount = async (): Promise<void> => {
-  if (!auth || !isFirebaseConfigured) {
+  if (!isFirebaseConfigured()) {
     throw new Error('Firebase authentication is not configured');
+  }
+  
+  const { auth } = getFirebaseInstances();
+  if (!auth) {
+    throw new Error('Firebase authentication is not initialized');
   }
 
   try {

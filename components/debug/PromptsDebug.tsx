@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db, isFirebaseConfigured } from '@/lib/firebase/config';
+import { isFirebaseConfigured, ensureFirebaseClient, getFirebaseInstances } from '@/lib/firebase/config';
 import { Button } from '@/components/ui/button';
 import { Loader2, Bug, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 
@@ -35,8 +35,23 @@ export function PromptsDebug() {
 
     try {
       // Check if Firebase is configured
-      if (!db || !isFirebaseConfigured) {
+      if (!isFirebaseConfigured()) {
         info.error = 'Firebase is not configured';
+        info.firestoreConnection = false;
+        return info;
+      }
+      
+      // Ensure Firebase is initialized
+      const initSuccess = await ensureFirebaseClient();
+      if (!initSuccess) {
+        info.error = 'Firebase initialization failed';
+        info.firestoreConnection = false;
+        return info;
+      }
+      
+      const { db } = getFirebaseInstances();
+      if (!db) {
+        info.error = 'Firestore not initialized';
         info.firestoreConnection = false;
         return info;
       }
