@@ -12,6 +12,7 @@ import { FirebaseApp, initializeApp, getApps } from 'firebase/app';
 import { Auth, getAuth } from 'firebase/auth';
 import { Firestore, getFirestore } from 'firebase/firestore';
 import { Analytics, getAnalytics, isSupported } from 'firebase/analytics';
+import { getFirebaseConfig, validateConfig } from './config-fetcher';
 
 export interface FirebaseConfig {
   apiKey: string;
@@ -48,91 +49,30 @@ class FirebaseInitializationService {
    * Get Firebase configuration with enhanced environment variable access
    * Handles Vercel build-time vs runtime differences and client-side bundling
    */
-  private getFirebaseConfig(): { config: FirebaseConfig | null; errors: string[] } {
-    const errors: string[] = [];
-    const debugInfo: any = {};
+  private async getFirebaseConfig(): Promise<{ config: FirebaseConfig | null; errors: string[] }> {
+    console.log('🔧 Getting Firebase configuration with API fallback...');
     
-    // Enhanced environment variable access with multiple fallback strategies
-    const getEnvVar = (key: string): string | undefined => {
-      let value: string | undefined;
+    try {
+      const { config, source, errors } = await getFirebaseConfig();
       
-      // Strategy 1: Direct process.env access (build-time)
-      value = process.env[key];
-      debugInfo[`${key}_strategy1`] = !!value;
-      
-      // Strategy 2: Runtime process.env access (Vercel edge functions)
-      if (!value && typeof process !== 'undefined' && process.env) {
-        try {
-          value = process.env[key];
-          debugInfo[`${key}_strategy2`] = !!value;
-        } catch (e) {
-          debugInfo[`${key}_strategy2_error`] = e;
+      if (config) {
+        const validation = validateConfig(config);
+        if (validation.isValid) {
+          console.log(`✅ Firebase config loaded successfully from ${source}`);
+          return { config, errors: [] };
+        } else {
+          console.error('❌ Firebase config validation failed:', validation.errors);
+          return { config: null, errors: validation.errors };
         }
+      } else {
+        console.error('❌ Failed to load Firebase config:', errors);
+        return { config: null, errors };
       }
-      
-      // Strategy 3: Client-side window injection (for runtime env vars)
-      if (!value && typeof window !== 'undefined') {
-        try {
-          // @ts-ignore - Check for runtime environment injection
-          value = (window as any).__FIREBASE_ENV__?.[key] || (window as any)._env?.[key];
-          debugInfo[`${key}_strategy3`] = !!value;
-        } catch (e) {
-          debugInfo[`${key}_strategy3_error`] = e;
-        }
-      }
-      
-      // Strategy 4: Check for Next.js runtime config (if available)
-      if (!value && typeof window !== 'undefined') {
-        try {
-          // @ts-ignore - Next.js runtime config
-          const nextConfig = (window as any).__NEXT_DATA__?.props?.pageProps?.__NEXT_ENV__ || {};
-          value = nextConfig[key];
-          debugInfo[`${key}_strategy4`] = !!value;
-        } catch (e) {
-          debugInfo[`${key}_strategy4_error`] = e;
-        }
-      }
-      
-      debugInfo[`${key}_final_value`] = value ? `${value.substring(0, 10)}...` : 'MISSING';
-      return value;
-    };
-
-    const config = {
-      apiKey: getEnvVar('NEXT_PUBLIC_FIREBASE_API_KEY'),
-      authDomain: getEnvVar('NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN'),
-      projectId: getEnvVar('NEXT_PUBLIC_FIREBASE_PROJECT_ID'),
-      storageBucket: getEnvVar('NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET'),
-      messagingSenderId: getEnvVar('NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID'),
-      appId: getEnvVar('NEXT_PUBLIC_FIREBASE_APP_ID'),
-      measurementId: getEnvVar('NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID'),
-    };
-
-    // Validate required fields
-    const requiredFields = ['apiKey', 'authDomain', 'projectId', 'appId'] as const;
-    const missingFields = requiredFields.filter(field => !config[field]);
-    
-    if (missingFields.length > 0) {
-      errors.push(`Missing required Firebase config: ${missingFields.join(', ')}`);
-      return { config: null, errors };
+    } catch (error) {
+      const errorMessage = `Firebase config fetch error: ${error}`;
+      console.error('❌', errorMessage);
+      return { config: null, errors: [errorMessage] };
     }
-
-    // Check for placeholder values
-    const placeholderValues = ['your_firebase_api_key', 'your_project_id', 'undefined', 'null'];
-    const invalidFields = Object.entries(config).filter(([key, value]) => 
-      value && placeholderValues.includes(value.toLowerCase())
-    );
-    
-    if (invalidFields.length > 0) {
-      errors.push(`Invalid placeholder values in Firebase config: ${invalidFields.map(([key]) => key).join(', ')}`);
-      return { config: null, errors };
-    }
-
-    // Log debug information for troubleshooting
-    if (typeof window !== 'undefined') {
-      console.log('🔧 Firebase Config Debug Info:', debugInfo);
-    }
-    
-    return { config: config as FirebaseConfig, errors };
   }
 
   /**
@@ -175,7 +115,7 @@ class FirebaseInitializationService {
     }
 
     // Get configuration with detailed validation
-    const { config, errors } = this.getFirebaseConfig();
+    const { config, errors } = await this.getFirebaseConfig();
     
     if (!config || errors.length > 0) {
       console.error(`❌ [${attemptId}] Firebase configuration invalid:`, {
@@ -383,9 +323,9 @@ class FirebaseInitializationService {
   /**
    * Get initialization status
    */
-  getStatus() {
-    const { config, errors } = this.getFirebaseConfig();
-    
+  async getStatus() {
+    const { config, errors } = await this.getFirebaseConfig();
+
     return {
       isConfigValid: !!config && errors.length === 0,
       isInitialized: !!(this.app && this.auth && this.db),

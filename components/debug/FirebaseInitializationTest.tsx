@@ -52,7 +52,7 @@ export function FirebaseInitializationTest() {
       // Step 1: Configuration Check
       addResult('config-check', 'running', 'Checking Firebase configuration...');
       const configValid = isFirebaseConfigured();
-      const status = getFirebaseStatus();
+      const status = await getFirebaseStatus();
       
       if (configValid) {
         addResult('config-check', 'success', 'Firebase configuration is valid', status);
@@ -80,7 +80,7 @@ export function FirebaseInitializationTest() {
       // Step 3: Firebase Client Initialization
       addResult('init-client', 'running', 'Initializing Firebase client...');
       const initSuccess = await ensureFirebaseClient();
-      const postInitStatus = getFirebaseStatus();
+      const postInitStatus = await getFirebaseStatus();
       
       if (initSuccess) {
         addResult('init-client', 'success', 'Firebase client initialized successfully', postInitStatus);
@@ -124,7 +124,7 @@ export function FirebaseInitializationTest() {
       }
 
       // Final Status
-      const finalStatus = getFirebaseStatus();
+      const finalStatus = await getFirebaseStatus();
       const allPassed = configValid && initSuccess && instancesValid;
       
       if (allPassed) {

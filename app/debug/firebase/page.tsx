@@ -55,7 +55,7 @@ export default function FirebaseDebugPage() {
       
       try {
         await ensureFirebaseClient();
-        const fullStatus = getFirebaseStatus();
+        const fullStatus = await getFirebaseStatus();
         authInitialized = fullStatus.service.instances.hasAuth;
         dbInitialized = fullStatus.service.instances.hasDb;
       } catch (error) {

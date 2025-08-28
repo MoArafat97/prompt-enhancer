@@ -34,7 +34,7 @@ export default function FirebaseCheckPage() {
     setLoading(true);
     try {
       // Get Firebase status
-      const status = getFirebaseStatus();
+      const status = await getFirebaseStatus();
       setFirebaseStatus(status);
 
       // Fetch server diagnostic

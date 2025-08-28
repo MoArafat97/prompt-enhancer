@@ -26,7 +26,7 @@ let _cachedStatus: {
 const CONFIG_CACHE_TTL = 5000; // 5 seconds
 
 /**
- * Check if Firebase is properly configured (with caching)
+ * Check if Firebase is properly configured using enhanced Vercel environment access
  */
 export function isFirebaseConfigured(): boolean {
   const now = Date.now();
@@ -36,79 +36,19 @@ export function isFirebaseConfigured(): boolean {
     return _cachedStatus.isConfigured;
   }
 
-  // Check environment variables with enhanced Vercel support
-  const requiredVars = [
-    'NEXT_PUBLIC_FIREBASE_API_KEY',
-    'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
-    'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
-    'NEXT_PUBLIC_FIREBASE_APP_ID'
-  ];
-
-  const errors: string[] = [];
-  const missingVars: string[] = [];
-
-  // Enhanced environment variable access for Vercel
-  const getEnvVar = (key: string): string | undefined => {
-    // Try multiple access methods for Vercel compatibility
-    let value = process.env[key];
-
-    // Fallback for Vercel build-time issues
-    if (!value && typeof window !== 'undefined') {
-      // Client-side fallback (should not be needed for NEXT_PUBLIC_ vars)
-      value = (window as any).__ENV__?.[key];
-    }
-
-    return value;
-  };
-
-  // Debug logging for environment variables
-  console.log('🔍 Checking Firebase environment variables:', {
-    nodeEnv: process.env.NODE_ENV,
-    isVercel: !!process.env.VERCEL,
-    vercelEnv: process.env.VERCEL_ENV,
-    allFirebaseKeys: Object.keys(process.env).filter(key => key.startsWith('NEXT_PUBLIC_FIREBASE')),
-    processEnvKeys: Object.keys(process.env).length,
-    timestamp: new Date().toISOString()
-  });
-
-  for (const varName of requiredVars) {
-    const value = getEnvVar(varName);
-    console.log(`🔍 ${varName}:`, {
-      hasValue: !!value,
-      valueLength: value?.length || 0,
-      preview: value ? `${value.substring(0, 10)}...` : 'MISSING',
-      fromProcessEnv: !!process.env[varName]
-    });
-
-    if (!value) {
-      missingVars.push(varName);
-    } else if (value === 'your_firebase_api_key' || value === 'your_project_id') {
-      errors.push(`${varName} has placeholder value`);
-    }
-  }
-
-  if (missingVars.length > 0) {
-    errors.push(`Missing environment variables: ${missingVars.join(', ')}`);
-  }
-
-  const isConfigured = errors.length === 0;
+  // Use enhanced Vercel environment variable validation
+  const { validateFirebaseConfig } = require('./vercel-env-fix');
+  const validation = validateFirebaseConfig();
 
   // Cache the result
   _cachedStatus = {
-    isConfigured,
+    isConfigured: validation.isValid,
     lastChecked: now,
-    configValid: isConfigured,
-    errors
+    configValid: validation.isValid,
+    errors: validation.errors
   };
 
-  if (!isConfigured) {
-    console.warn('🚨 Firebase configuration issues:', errors);
-    console.warn('🚨 Missing variables:', missingVars);
-  } else {
-    console.log('✅ Firebase configuration is valid');
-  }
-
-  return isConfigured;
+  return validation.isValid;
 }
 
 /**
@@ -154,8 +94,8 @@ export function getFirebaseInstances(): {
 /**
  * Get comprehensive Firebase initialization status
  */
-export function getFirebaseStatus() {
-  const serviceStatus = firebaseInitService.getStatus();
+export async function getFirebaseStatus() {
+  const serviceStatus = await firebaseInitService.getStatus();
   const instances = firebaseInitService.getInstances();
   const configStatus = _cachedStatus;
   

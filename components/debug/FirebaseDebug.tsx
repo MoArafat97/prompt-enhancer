@@ -17,9 +17,9 @@ export function FirebaseDebug() {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    const checkFirebaseStatus = () => {
+    const checkFirebaseStatus = async () => {
       // Use the enhanced status from config
-      const firebaseStatus = getFirebaseStatus();
+      const firebaseStatus = await getFirebaseStatus();
       
       const envVars = {
         NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -175,7 +175,10 @@ export function FirebaseDebug() {
                   console.log('🔄 Manual Firebase initialization attempt...');
                   ensureFirebaseClient();
                   // Refresh status after attempt
-                  setTimeout(() => setStatus(prev => ({ ...prev!, firebaseStatus: getFirebaseStatus() })), 1000);
+                  setTimeout(async () => {
+                    const newStatus = await getFirebaseStatus();
+                    setStatus(prev => ({ ...prev!, firebaseStatus: newStatus }));
+                  }, 1000);
                 }}
                 size="sm"
                 variant="outline"
@@ -194,8 +197,9 @@ export function FirebaseDebug() {
               </Button>
               
               <Button
-                onClick={() => {
-                  console.log('📋 Current Firebase Status:', getFirebaseStatus());
+                onClick={async () => {
+                  const firebaseStatus = await getFirebaseStatus();
+                  console.log('📋 Current Firebase Status:', firebaseStatus);
                   console.log('📋 Environment Variables:', {
                     ...status.envVars,
                     timestamp: new Date().toISOString(),

@@ -153,7 +153,7 @@ export const signInWithGoogle = async (): Promise<UserCredential> => {
   
   // Verify Firebase is configured
   if (!isFirebaseConfigured()) {
-    const status = getFirebaseStatus();
+    const status = await getFirebaseStatus();
     console.error('❌ Firebase is not configured:', status.configErrors);
     throw new Error(`Firebase is not configured: ${status.configErrors.join(', ')}`);
   }
@@ -162,14 +162,14 @@ export const signInWithGoogle = async (): Promise<UserCredential> => {
   console.log('🔍 Ensuring Firebase client is ready for Google sign-in...');
   const initSuccess = await ensureFirebaseClient();
   if (!initSuccess) {
-    const status = getFirebaseStatus();
+    const status = await getFirebaseStatus();
     console.error('❌ Firebase initialization failed:', status);
     throw new Error(`Firebase Auth initialization failed. Check environment variables and try again.`);
   }
   
   const { auth } = getFirebaseInstances();
   if (!auth) {
-    const status = getFirebaseStatus();
+    const status = await getFirebaseStatus();
     console.error('❌ Firebase Auth not available after initialization:', status);
     throw new Error('Firebase Auth is not initialized on the client');
   }
@@ -436,7 +436,7 @@ export const subscribeToAuthState = (
       console.log('🔄 Firebase configured, attempting initialization...');
       const initSuccess = await ensureFirebaseClient();
       if (!initSuccess) {
-        const status = getFirebaseStatus();
+        const status = await getFirebaseStatus();
         console.warn('⚠️ Firebase initialization failed for auth state subscription:', status);
         if (!isUnsubscribed) {
           callback(null);
