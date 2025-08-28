@@ -160,7 +160,7 @@ class FirebaseInitializationService {
         nodeEnv: process.env.NODE_ENV,
         isVercel: !!process.env.VERCEL,
         vercelEnv: process.env.VERCEL_ENV,
-        hasFirebaseVars: !![process.env.NEXT_PUBLIC_FIREBASE_API_KEY],
+        hasFirebaseVars: !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
       });
       return {
         success: false,

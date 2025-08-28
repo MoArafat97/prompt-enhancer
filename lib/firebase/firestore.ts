@@ -73,6 +73,11 @@ export const updatePrompt = async (
   updates: Partial<SavedPrompt>
 ): Promise<void> => {
   try {
+    const { promptsCollection } = await getCollections();
+    if (!promptsCollection) {
+      throw new Error('Firestore not initialized');
+    }
+
     const promptRef = doc(promptsCollection, promptId);
     await updateDoc(promptRef, {
       ...updates,
@@ -86,6 +91,11 @@ export const updatePrompt = async (
 
 export const deletePrompt = async (promptId: string): Promise<void> => {
   try {
+    const { promptsCollection } = await getCollections();
+    if (!promptsCollection) {
+      throw new Error('Firestore not initialized');
+    }
+
     const promptRef = doc(promptsCollection, promptId);
     await deleteDoc(promptRef);
   } catch (error) {
@@ -96,9 +106,14 @@ export const deletePrompt = async (promptId: string): Promise<void> => {
 
 export const getPrompt = async (promptId: string): Promise<SavedPrompt | null> => {
   try {
+    const { promptsCollection } = await getCollections();
+    if (!promptsCollection) {
+      throw new Error('Firestore not initialized');
+    }
+
     const promptRef = doc(promptsCollection, promptId);
     const promptSnap = await getDoc(promptRef);
-    
+
     if (promptSnap.exists()) {
       return { id: promptSnap.id, ...promptSnap.data() } as SavedPrompt;
     }
@@ -118,6 +133,11 @@ export const getUserPrompts = async (
   lastDoc: QueryDocumentSnapshot<DocumentData> | null;
 }> => {
   try {
+    const { promptsCollection } = await getCollections();
+    if (!promptsCollection) {
+      throw new Error('Firestore not initialized');
+    }
+
     let q = query(
       promptsCollection,
       where('userId', '==', userId),
@@ -131,7 +151,7 @@ export const getUserPrompts = async (
 
     const querySnapshot = await getDocs(q);
     const prompts: SavedPrompt[] = [];
-    
+
     querySnapshot.forEach((doc) => {
       const data = doc.data() as any;
       prompts.push({ id: doc.id, ...data } as SavedPrompt);
@@ -151,6 +171,11 @@ export const getUserFavoritePrompts = async (
   userId: string
 ): Promise<SavedPrompt[]> => {
   try {
+    const { promptsCollection } = await getCollections();
+    if (!promptsCollection) {
+      throw new Error('Firestore not initialized');
+    }
+
     const q = query(
       promptsCollection,
       where('userId', '==', userId),
@@ -160,7 +185,7 @@ export const getUserFavoritePrompts = async (
 
     const querySnapshot = await getDocs(q);
     const prompts: SavedPrompt[] = [];
-    
+
     querySnapshot.forEach((doc) => {
       const data = doc.data() as any;
       prompts.push({ id: doc.id, ...data } as SavedPrompt);
@@ -178,6 +203,11 @@ export const searchUserPrompts = async (
   searchTerm: string
 ): Promise<SavedPrompt[]> => {
   try {
+    const { promptsCollection } = await getCollections();
+    if (!promptsCollection) {
+      throw new Error('Firestore not initialized');
+    }
+
     // Note: Firestore doesn't support full-text search natively
     // This is a simple implementation that searches in title
     // For production, consider using Algolia or Elasticsearch
@@ -191,7 +221,7 @@ export const searchUserPrompts = async (
 
     const querySnapshot = await getDocs(q);
     const prompts: SavedPrompt[] = [];
-    
+
     querySnapshot.forEach((doc) => {
       const data = doc.data() as any;
       prompts.push({ id: doc.id, ...data } as SavedPrompt);
@@ -204,32 +234,43 @@ export const searchUserPrompts = async (
   }
 };
 
-export const subscribeToUserPrompts = (
+export const subscribeToUserPrompts = async (
   userId: string,
   callback: (prompts: SavedPrompt[]) => void,
   onError?: (error: Error) => void
-): Unsubscribe => {
-  const q = query(
-    promptsCollection,
-    where('userId', '==', userId),
-    orderBy('createdAt', 'desc')
-  );
-
-  return onSnapshot(
-    q,
-    (querySnapshot) => {
-      const prompts: SavedPrompt[] = [];
-      querySnapshot.forEach((doc) => {
-        const data = doc.data() as any;
-        prompts.push({ id: doc.id, ...data } as SavedPrompt);
-      });
-      callback(prompts);
-    },
-    (error) => {
-      console.error('Error in prompts subscription:', error);
-      if (onError) onError(error);
+): Promise<Unsubscribe | null> => {
+  try {
+    const { promptsCollection } = await getCollections();
+    if (!promptsCollection) {
+      throw new Error('Firestore not initialized');
     }
-  );
+
+    const q = query(
+      promptsCollection,
+      where('userId', '==', userId),
+      orderBy('createdAt', 'desc')
+    );
+
+    return onSnapshot(
+      q,
+      (querySnapshot) => {
+        const prompts: SavedPrompt[] = [];
+        querySnapshot.forEach((doc) => {
+          const data = doc.data() as any;
+          prompts.push({ id: doc.id, ...data } as SavedPrompt);
+        });
+        callback(prompts);
+      },
+      (error) => {
+        console.error('Error in prompts subscription:', error);
+        if (onError) onError(error);
+      }
+    );
+  } catch (error) {
+    console.error('Error setting up prompts subscription:', error);
+    if (onError) onError(error as Error);
+    return null;
+  }
 };
 
 // Enhancement History Operations
@@ -238,6 +279,11 @@ export const saveEnhancementHistory = async (
   historyData: Omit<EnhancementHistory, 'id' | 'createdAt'>
 ): Promise<string> => {
   try {
+    const { enhancementHistoryCollection } = await getCollections();
+    if (!enhancementHistoryCollection) {
+      throw new Error('Firestore not initialized');
+    }
+
     const docRef = await addDoc(enhancementHistoryCollection, {
       ...historyData,
       userId,
@@ -255,6 +301,11 @@ export const getUserEnhancementHistory = async (
   limitCount = 50
 ): Promise<EnhancementHistory[]> => {
   try {
+    const { enhancementHistoryCollection } = await getCollections();
+    if (!enhancementHistoryCollection) {
+      throw new Error('Firestore not initialized');
+    }
+
     const q = query(
       enhancementHistoryCollection,
       where('userId', '==', userId),
@@ -264,7 +315,7 @@ export const getUserEnhancementHistory = async (
 
     const querySnapshot = await getDocs(q);
     const history: EnhancementHistory[] = [];
-    
+
     querySnapshot.forEach((doc) => {
       const data = doc.data() as any;
       history.push({ id: doc.id, ...data } as EnhancementHistory);
@@ -279,11 +330,14 @@ export const getUserEnhancementHistory = async (
 
 // Batch operations for better performance
 export const batchDeletePrompts = async (promptIds: string[]): Promise<void> => {
-  if (!db) {
-    throw new Error('Firebase is not configured');
-  }
-
   try {
+    const db = await getDb();
+    const { promptsCollection } = await getCollections();
+
+    if (!db || !promptsCollection) {
+      throw new Error('Firestore not initialized');
+    }
+
     const batch: WriteBatch = writeBatch(db);
 
     promptIds.forEach((promptId) => {
@@ -301,11 +355,14 @@ export const batchDeletePrompts = async (promptIds: string[]): Promise<void> => 
 export const batchUpdatePrompts = async (
   updates: Array<{ id: string; data: Partial<SavedPrompt> }>
 ): Promise<void> => {
-  if (!db) {
-    throw new Error('Firebase is not configured');
-  }
-
   try {
+    const db = await getDb();
+    const { promptsCollection } = await getCollections();
+
+    if (!db || !promptsCollection) {
+      throw new Error('Firestore not initialized');
+    }
+
     const batch: WriteBatch = writeBatch(db);
 
     updates.forEach(({ id, data }) => {
@@ -331,6 +388,11 @@ export const getUserStatistics = async (userId: string): Promise<{
   techniqueUsage: Record<string, number>;
 }> => {
   try {
+    const { promptsCollection, enhancementHistoryCollection } = await getCollections();
+    if (!promptsCollection || !enhancementHistoryCollection) {
+      throw new Error('Firestore not initialized');
+    }
+
     // Get total prompts
     const promptsQuery = query(
       promptsCollection,
@@ -338,7 +400,7 @@ export const getUserStatistics = async (userId: string): Promise<{
     );
     const promptsSnapshot = await getDocs(promptsQuery);
     const totalPrompts = promptsSnapshot.size;
-    
+
     // Get favorite prompts
     const favoritesQuery = query(
       promptsCollection,
@@ -347,7 +409,7 @@ export const getUserStatistics = async (userId: string): Promise<{
     );
     const favoritesSnapshot = await getDocs(favoritesQuery);
     const favoritePrompts = favoritesSnapshot.size;
-    
+
     // Get enhancement history for technique usage
     const historyQuery = query(
       enhancementHistoryCollection,
@@ -355,13 +417,13 @@ export const getUserStatistics = async (userId: string): Promise<{
     );
     const historySnapshot = await getDocs(historyQuery);
     const totalEnhancements = historySnapshot.size;
-    
+
     const techniqueUsage: Record<string, number> = {};
     historySnapshot.forEach((doc) => {
       const data = doc.data() as EnhancementHistory;
       techniqueUsage[data.technique] = (techniqueUsage[data.technique] || 0) + 1;
     });
-    
+
     return {
       totalPrompts,
       favoritePrompts,

@@ -39,30 +39,53 @@ export function useSavedPrompts(options: UseSavedPromptsOptions = {}) {
     // Real-time subscription
     if (realtime) {
       console.log('Setting up real-time subscription for user:', user.uid);
-      const unsubscribe = subscribeToUserPrompts(
-        user.uid,
-        (updatedPrompts) => {
-          console.log('Received prompts update:', updatedPrompts.length, 'prompts');
-          if (favoritesOnly) {
-            setPrompts(updatedPrompts.filter(p => p.isFavorite));
-          } else {
-            setPrompts(updatedPrompts);
+
+      const setupSubscription = async () => {
+        const unsubscribe = await subscribeToUserPrompts(
+          user.uid,
+          (updatedPrompts) => {
+            console.log('Received prompts update:', updatedPrompts.length, 'prompts');
+            if (favoritesOnly) {
+              setPrompts(updatedPrompts.filter(p => p.isFavorite));
+            } else {
+              setPrompts(updatedPrompts);
+            }
+            setLoading(false);
+          },
+          (err) => {
+            console.error('Error in prompts subscription:', err);
+            setError(err);
+            setLoading(false);
+            addToast({
+              title: 'Error loading prompts',
+              description: err.message,
+              type: 'error',
+            });
           }
-          setLoading(false);
-        },
-        (err) => {
-          console.error('Error in prompts subscription:', err);
-          setError(err);
-          setLoading(false);
-          addToast({
-            title: 'Error loading prompts',
-            description: err.message,
-            type: 'error',
+        );
+
+        return unsubscribe;
+      };
+
+      let unsubscribePromise: Promise<(() => void) | null> | null = null;
+
+      setupSubscription().then((unsubscribe) => {
+        unsubscribePromise = Promise.resolve(unsubscribe);
+      }).catch((err) => {
+        console.error('Error setting up subscription:', err);
+        setError(err);
+        setLoading(false);
+      });
+
+      return () => {
+        if (unsubscribePromise) {
+          unsubscribePromise.then((unsubscribe) => {
+            if (unsubscribe) {
+              unsubscribe();
+            }
           });
         }
-      );
-
-      return () => unsubscribe();
+      };
     } else {
       // One-time fetch
       const loadPrompts = async () => {
