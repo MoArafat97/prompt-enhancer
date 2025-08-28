@@ -36,7 +36,7 @@ export function isFirebaseConfigured(): boolean {
     return _cachedStatus.isConfigured;
   }
 
-  // Check environment variables
+  // Check environment variables with enhanced Vercel support
   const requiredVars = [
     'NEXT_PUBLIC_FIREBASE_API_KEY',
     'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
@@ -47,21 +47,37 @@ export function isFirebaseConfigured(): boolean {
   const errors: string[] = [];
   const missingVars: string[] = [];
 
+  // Enhanced environment variable access for Vercel
+  const getEnvVar = (key: string): string | undefined => {
+    // Try multiple access methods for Vercel compatibility
+    let value = process.env[key];
+
+    // Fallback for Vercel build-time issues
+    if (!value && typeof window !== 'undefined') {
+      // Client-side fallback (should not be needed for NEXT_PUBLIC_ vars)
+      value = (window as any).__ENV__?.[key];
+    }
+
+    return value;
+  };
+
   // Debug logging for environment variables
   console.log('🔍 Checking Firebase environment variables:', {
     nodeEnv: process.env.NODE_ENV,
     isVercel: !!process.env.VERCEL,
     vercelEnv: process.env.VERCEL_ENV,
     allFirebaseKeys: Object.keys(process.env).filter(key => key.startsWith('NEXT_PUBLIC_FIREBASE')),
+    processEnvKeys: Object.keys(process.env).length,
     timestamp: new Date().toISOString()
   });
 
   for (const varName of requiredVars) {
-    const value = process.env[varName];
+    const value = getEnvVar(varName);
     console.log(`🔍 ${varName}:`, {
       hasValue: !!value,
       valueLength: value?.length || 0,
-      preview: value ? `${value.substring(0, 10)}...` : 'MISSING'
+      preview: value ? `${value.substring(0, 10)}...` : 'MISSING',
+      fromProcessEnv: !!process.env[varName]
     });
 
     if (!value) {
