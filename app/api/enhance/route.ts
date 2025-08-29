@@ -204,6 +204,39 @@ export async function POST(request: NextRequest) {
           { status: 503 }
         );
       }
+
+      if (error.message.includes('timeout') || error.message.includes('Request timeout')) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Request timeout',
+            message: 'The request took too long to process. Please try again with a simpler prompt.',
+          } as ApiResponse,
+          { status: 504 }
+        );
+      }
+
+      if (error.message.includes('503') || error.message.includes('Service temporarily unavailable')) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Service temporarily unavailable',
+            message: 'The AI service is temporarily unavailable. Please try again in a few moments.',
+          } as ApiResponse,
+          { status: 503 }
+        );
+      }
+
+      if (error.message.includes('All models failed')) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Service unavailable',
+            message: 'Unable to process your request at this time. Please try a different technique or try again later.',
+          } as ApiResponse,
+          { status: 503 }
+        );
+      }
     }
 
     return NextResponse.json(

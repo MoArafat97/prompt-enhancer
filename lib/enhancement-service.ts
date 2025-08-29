@@ -93,10 +93,18 @@ export class EnhancementService {
       try {
         console.log(`Trying model: ${model.name} (${model.id})`);
 
-        // Add timeout wrapper for the API call
+        // Add timeout wrapper for the API call - shorter timeout for complex prompts
+        const isComplexPrompt = systemPrompt.length > 3000; // Complex prompts like root cause analysis
+        const timeoutMs = isComplexPrompt ? 20000 : 25000; // 20s for complex, 25s for normal
+        
         const timeoutPromise = new Promise<never>((_, reject) => {
-          setTimeout(() => reject(new Error('Request timeout')), 25000); // 25 second timeout
+          setTimeout(() => reject(new Error('Request timeout')), timeoutMs);
         });
+
+        // Reduce max tokens for complex prompts to improve response time
+        const maxTokens = isComplexPrompt 
+          ? Math.min(1500, model.maxTokens) 
+          : Math.min(API_CONFIG.OPENROUTER_CONFIG.max_tokens, model.maxTokens);
 
         const completionPromise = this.openrouter.chat.completions.create({
           model: model.id,
@@ -105,7 +113,7 @@ export class EnhancementService {
             { role: 'user', content: request.prompt },
           ],
           temperature: API_CONFIG.OPENROUTER_CONFIG.temperature,
-          max_tokens: Math.min(API_CONFIG.OPENROUTER_CONFIG.max_tokens, model.maxTokens),
+          max_tokens: maxTokens,
           top_p: API_CONFIG.OPENROUTER_CONFIG.top_p,
           frequency_penalty: API_CONFIG.OPENROUTER_CONFIG.frequency_penalty,
           presence_penalty: API_CONFIG.OPENROUTER_CONFIG.presence_penalty,
