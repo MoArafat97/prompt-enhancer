@@ -20,7 +20,6 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { PromptsDebug } from '@/components/debug/PromptsDebug';
 import { useToast } from '@/components/ui/toast';
 import { copyToClipboard } from '@/lib/utils';
 
@@ -327,8 +326,6 @@ export default function HistoryPage() {
         )}
       </div>
 
-      {/* Debug Component - Remove after troubleshooting */}
-      <PromptsDebug />
 
       {/* View Modal */}
       <AnimatePresence>

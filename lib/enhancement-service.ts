@@ -93,7 +93,12 @@ export class EnhancementService {
       try {
         console.log(`Trying model: ${model.name} (${model.id})`);
 
-        const completion = await this.openrouter.chat.completions.create({
+        // Add timeout wrapper for the API call
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('Request timeout')), 25000); // 25 second timeout
+        });
+
+        const completionPromise = this.openrouter.chat.completions.create({
           model: model.id,
           messages: [
             { role: 'system', content: systemPrompt },
@@ -105,6 +110,8 @@ export class EnhancementService {
           frequency_penalty: API_CONFIG.OPENROUTER_CONFIG.frequency_penalty,
           presence_penalty: API_CONFIG.OPENROUTER_CONFIG.presence_penalty,
         });
+
+        const completion = await Promise.race([completionPromise, timeoutPromise]);
 
         const enhanced = completion.choices[0]?.message?.content;
 
@@ -128,6 +135,16 @@ export class EnhancementService {
           throw new Error('Invalid OpenRouter API key');
         }
 
+        // If it's a 503 error or timeout, try the next model
+        if (error instanceof Error && (
+          error.message.includes('503') ||
+          error.message.includes('timeout') ||
+          error.message.includes('Request timeout')
+        )) {
+          console.log(`Model ${model.name} timed out or unavailable, trying next model...`);
+          continue;
+        }
+
         // Continue to next model for other errors
         continue;
       }
@@ -140,6 +157,9 @@ export class EnhancementService {
       }
       if (lastError.message.includes('rate limit') || lastError.message.includes('429')) {
         throw new Error('OpenRouter API rate limit exceeded');
+      }
+      if (lastError.message.includes('503') || lastError.message.includes('timeout')) {
+        throw new Error('Service temporarily unavailable. Please try again.');
       }
       throw new Error(`All models failed. Last error: ${lastError.message}`);
     }
