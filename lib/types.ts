@@ -17,6 +17,7 @@ export interface EnhanceRequest {
   prompt: string;
   technique: EnhancementTechnique;
   outputFormat: OutputFormat;
+  model?: string;
 }
 
 export interface EnhancementResult {

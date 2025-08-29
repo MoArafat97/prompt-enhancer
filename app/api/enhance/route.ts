@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { prompt, technique, outputFormat } = body;
+    const { prompt, technique, outputFormat, model } = body;
 
     // Validate required fields
     if (!prompt || !technique || !outputFormat) {
@@ -154,6 +154,7 @@ export async function POST(request: NextRequest) {
       prompt,
       technique,
       outputFormat,
+      model,
     });
 
 
@@ -180,7 +181,20 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Enhancement error:', error);
-    
+
+    // Handle non-Error objects that might be thrown
+    if (!(error instanceof Error)) {
+      console.error('Non-Error object thrown:', typeof error, error);
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Internal server error',
+          message: 'An unexpected error occurred while processing your request',
+        } as ApiResponse,
+        { status: 500 }
+      );
+    }
+
     // Handle specific error types
     if (error instanceof Error) {
       if (error.message.includes('API key')) {

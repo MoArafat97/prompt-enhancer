@@ -13,16 +13,41 @@ import { EnhancementTechnique, OutputFormat, EnhancementResult } from '@/lib/typ
 import { useToast } from '@/components/ui/toast';
 import { savePrompt } from '@/lib/firebase/firestore';
 import { useAuth } from '@/lib/contexts/AuthContext';
+import { ModelSelector } from '@/components/enhancement/ModelInfo';
+import { DEFAULT_MODEL } from '@/lib/constants';
 
 export default function WorkspacePage() {
   const [prompt, setPrompt] = useState('');
   const [technique, setTechnique] = useState<EnhancementTechnique>('clarity');
   const [category, setCategory] = useState<TechniqueCategory>('all');
   const [outputFormat, setOutputFormat] = useState<OutputFormat>('natural');
+  const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_MODEL.id);
   const [result, setResult] = useState<EnhancementResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { addToast } = useToast();
   const { user, userProfile } = useAuth();
+
+  // Global error handler for unhandled promise rejections
+  useEffect(() => {
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      console.error('Unhandled promise rejection in workspace:', event.reason);
+      event.preventDefault(); // Prevent the default browser behavior
+
+      // Show user-friendly error message
+      addToast({
+        type: 'error',
+        title: 'Unexpected Error',
+        description: 'An unexpected error occurred. Please try again.',
+        duration: 5000,
+      });
+    };
+
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+    return () => {
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
+  }, [addToast]);
 
   const handleEnhance = async () => {
     if (!prompt.trim()) return;
@@ -38,7 +63,7 @@ export default function WorkspacePage() {
       const response = await fetch('/api/enhance', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ prompt, technique, outputFormat }),
+        body: JSON.stringify({ prompt, technique, outputFormat, model: selectedModel }),
       });
 
       if (!response.ok) {
@@ -60,6 +85,13 @@ export default function WorkspacePage() {
         if (user) {
           try {
             console.log('Auto-saving prompt for user:', user.uid);
+
+            // Ensure all required data exists before saving
+            if (!data.data.original || !data.data.enhanced) {
+              console.warn('Skipping auto-save: missing required data');
+              return;
+            }
+
             const savedId = await savePrompt(user.uid, {
               title: prompt.slice(0, 60) || 'Untitled Prompt',
               description: '',
@@ -68,9 +100,9 @@ export default function WorkspacePage() {
               technique: data.data.technique,
               format: data.data.format,
               metadata: {
-                model: data.data.metadata.model,
-                processingTime: data.data.metadata.processingTime,
-                confidence: data.data.metadata.confidence,
+                model: data.data.metadata?.model || selectedModel,
+                processingTime: data.data.metadata?.processingTime || 0,
+                confidence: data.data.metadata?.confidence || 0,
                 category: category, // Include category in metadata
               },
               tags: [],
@@ -79,8 +111,14 @@ export default function WorkspacePage() {
               userId: user.uid,
             });
             console.log('Prompt auto-saved with ID:', savedId);
-          } catch (e) {
-            console.error('Auto-save failed:', e);
+          } catch (saveError) {
+            console.error('Auto-save failed:', saveError);
+            // Don't throw the error, just log it to prevent unhandled rejection
+            if (saveError instanceof Error) {
+              console.error('Auto-save error details:', saveError.message, saveError.stack);
+            } else {
+              console.error('Auto-save error (non-Error object):', saveError);
+            }
           }
         }
       } else {
@@ -112,6 +150,29 @@ export default function WorkspacePage() {
   useEffect(() => {
     localStorage.setItem('prompt-enhancer-category', category);
   }, [category]);
+
+  // Load saved model from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedModel = localStorage.getItem('prompt-enhancer-model');
+      if (savedModel) {
+        console.log('Loading saved model:', savedModel);
+        setSelectedModel(savedModel);
+      }
+    } catch (error) {
+      console.error('Failed to load saved model from localStorage:', error);
+    }
+  }, []);
+
+  // Save model to localStorage when it changes
+  useEffect(() => {
+    try {
+      console.log('Saving model to localStorage:', selectedModel);
+      localStorage.setItem('prompt-enhancer-model', selectedModel);
+    } catch (error) {
+      console.error('Failed to save model to localStorage:', error);
+    }
+  }, [selectedModel]);
 
   // Handle category change - reset technique to first available in new category
   useEffect(() => {
@@ -207,6 +268,15 @@ export default function WorkspacePage() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Model Selector */}
+        <div className="card p-6">
+          <ModelSelector
+            selectedModel={selectedModel}
+            onModelChange={setSelectedModel}
+            disabled={isLoading}
+          />
         </div>
 
         {(result || isLoading) && (

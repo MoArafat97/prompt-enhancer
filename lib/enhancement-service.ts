@@ -84,8 +84,11 @@ export class EnhancementService {
       throw new Error(`Unknown technique: ${request.technique}`);
     }
 
-    // Try the default model first, then fallback to other models if it fails
-    const modelsToTry = [DEFAULT_MODEL, ...AVAILABLE_MODELS.filter(m => m.id !== DEFAULT_MODEL.id)];
+    // Use the requested model first if provided, otherwise use default model, then fallback to other models
+    const requestedModel = request.model ? AVAILABLE_MODELS.find(m => m.id === request.model) : null;
+    const modelsToTry = requestedModel
+      ? [requestedModel, ...AVAILABLE_MODELS.filter(m => m.id !== requestedModel.id)]
+      : [DEFAULT_MODEL, ...AVAILABLE_MODELS.filter(m => m.id !== DEFAULT_MODEL.id)];
 
     let lastError: Error | null = null;
 

@@ -2,33 +2,20 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Info, ChevronDown, ChevronUp, Zap, TestTube, CheckCircle, XCircle, Clock, Gauge, Star } from 'lucide-react';
+import { Info, ChevronDown, ChevronUp, Zap, CheckCircle, XCircle, Clock, Gauge, Star } from 'lucide-react';
 import { AVAILABLE_MODELS, DEFAULT_MODEL } from '@/lib/constants';
 import { Tooltip, PerformanceBadge } from '@/components/ui/tooltip';
 
-export function ModelInfo() {
+interface ModelSelectorProps {
+  selectedModel?: string;
+  onModelChange?: (modelId: string) => void;
+  disabled?: boolean;
+}
+
+export function ModelSelector({ selectedModel, onModelChange, disabled }: ModelSelectorProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isTesting, setIsTesting] = useState(false);
-  const [testResults, setTestResults] = useState<any>(null);
 
-  const testModels = async () => {
-    setIsTesting(true);
-    setTestResults(null);
-
-    try {
-      const response = await fetch('/api/test-models');
-      const data = await response.json();
-      setTestResults(data);
-    } catch (error) {
-      setTestResults({
-        success: false,
-        error: 'Test failed',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
-    } finally {
-      setIsTesting(false);
-    }
-  };
+  const currentModel = AVAILABLE_MODELS.find(m => m.id === selectedModel) || DEFAULT_MODEL;
 
   return (
     <motion.div
@@ -40,9 +27,10 @@ export function ModelInfo() {
       {/* Header */}
       <motion.button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between text-left hover:bg-surface/50 rounded-lg p-2 transition-colors duration-200"
-        whileHover={{ scale: 1.01 }}
-        whileTap={{ scale: 0.99 }}
+        className={`w-full flex items-center justify-between text-left hover:bg-surface/50 rounded-lg p-2 transition-colors duration-200 ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+        whileHover={disabled ? {} : { scale: 1.01 }}
+        whileTap={disabled ? {} : { scale: 0.99 }}
+        disabled={disabled}
       >
         <div className="flex items-center space-x-3">
           <div className="relative w-8 h-8 bg-gradient-accent rounded-lg flex items-center justify-center">
@@ -64,12 +52,12 @@ export function ModelInfo() {
           <div className="flex-1">
             <div className="flex items-center space-x-2">
               <h3 className="font-heading font-semibold text-text-primary">
-                AI Models
+                AI Model
               </h3>
               <PerformanceBadge type="free" />
             </div>
             <p className="text-sm text-text-muted">
-              Currently using: {DEFAULT_MODEL.name} • Active
+              Currently using: {currentModel.name}
             </p>
           </div>
         </div>
@@ -91,55 +79,13 @@ export function ModelInfo() {
             transition={{ duration: 0.3 }}
             className="mt-4 space-y-3"
           >
-            <div className="flex items-center justify-between mb-3">
+            <div className="mb-3">
               <div className="text-sm text-text-secondary">
-                All models are completely free through OpenRouter:
+                Choose your preferred free AI model:
               </div>
-              <motion.button
-                onClick={testModels}
-                disabled={isTesting}
-                className="flex items-center space-x-2 text-xs bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary px-3 py-1.5 rounded-lg transition-colors duration-200 disabled:opacity-50"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <TestTube className="w-3 h-3" />
-                <span>{isTesting ? 'Testing...' : 'Test Models'}</span>
-              </motion.button>
             </div>
-
-            {testResults && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-4 p-3 rounded-lg bg-background/50 border border-border/30"
-              >
-                <div className="text-sm font-medium text-text-primary mb-2">
-                  Test Results
-                </div>
-
-                {testResults.summary && (
-                  <div className="text-xs text-text-secondary mb-2">
-                    {testResults.summary.working}/{testResults.summary.total} models working
-                  </div>
-                )}
-
-                {testResults.recommendation && (
-                  <div className="text-xs text-text-secondary">
-                    💡 {testResults.recommendation}
-                  </div>
-                )}
-
-                {!testResults.success && (
-                  <div className="text-xs text-error">
-                    {testResults.message}
-                  </div>
-                )}
-              </motion.div>
-            )}
             
             {AVAILABLE_MODELS.map((model, index) => {
-              const modelResult = testResults?.results?.find((r: any) => r.id === model.id);
-              
               // Determine performance characteristics
               const getPerformanceBadges = (model: any) => {
                 const badges = [];
@@ -166,6 +112,8 @@ export function ModelInfo() {
                 </div>
               );
 
+              const isSelected = model.id === selectedModel;
+
               return (
                 <Tooltip key={model.id} content={tooltipContent} side="right">
                   <motion.div
@@ -175,12 +123,25 @@ export function ModelInfo() {
                     className={`
                       p-3 rounded-lg border transition-all duration-200 cursor-pointer
                       hover:border-brand-primary/30 hover:bg-brand-primary/5
-                      ${model.id === DEFAULT_MODEL.id
+                      ${isSelected
                         ? 'border-brand-primary/50 bg-brand-primary/5'
                         : 'border-border/30 bg-background/50'
                       }
+                      ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
                     `}
-                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileHover={disabled ? {} : { scale: 1.02, y: -2 }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (!disabled && onModelChange) {
+                        try {
+                          console.log('Model selected:', model.id);
+                          onModelChange(model.id);
+                        } catch (error) {
+                          console.error('Error in model selection:', error);
+                        }
+                      }
+                    }}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -188,32 +149,13 @@ export function ModelInfo() {
                           <h4 className="font-medium text-text-primary text-sm">
                             {model.name.split(' ')[0]} {model.name.split(' ')[1]}
                           </h4>
-                          {model.id === DEFAULT_MODEL.id && (
-                            <motion.span 
+                          {isSelected && (
+                            <motion.span
                               className="text-xs bg-brand-primary text-white px-2 py-0.5 rounded-full"
                               animate={{ scale: [1, 1.05, 1] }}
                               transition={{ duration: 2, repeat: Infinity }}
                             >
-                              Active
-                            </motion.span>
-                          )}
-                          {modelResult && (
-                            <motion.span 
-                              className={`text-xs px-2 py-0.5 rounded-full flex items-center space-x-1 ${
-                                modelResult.status === 'working'
-                                  ? 'bg-success/20 text-success'
-                                  : 'bg-error/20 text-error'
-                              }`}
-                              initial={{ scale: 0 }}
-                              animate={{ scale: 1 }}
-                              transition={{ delay: 0.5 }}
-                            >
-                              {modelResult.status === 'working' ? (
-                                <CheckCircle className="w-3 h-3" />
-                              ) : (
-                                <XCircle className="w-3 h-3" />
-                              )}
-                              <span>{modelResult.status === 'working' ? 'Working' : 'Failed'}</span>
+                              Selected
                             </motion.span>
                           )}
                         </div>
@@ -256,11 +198,10 @@ export function ModelInfo() {
                 <Info className="w-4 h-4 text-brand-primary mt-0.5 flex-shrink-0" />
                 <div className="text-xs text-text-secondary">
                   <p className="font-medium text-brand-primary mb-1">
-                    Why OpenRouter?
+                    All Models Free
                   </p>
                   <p>
-                    OpenRouter provides free access to multiple state-of-the-art AI models 
-                    from different providers, giving you the best results without any cost.
+                    All models are completely free through OpenRouter. Choose the one that works best for your needs.
                   </p>
                 </div>
               </div>
@@ -271,3 +212,6 @@ export function ModelInfo() {
     </motion.div>
   );
 }
+
+// Backward compatibility - export as ModelInfo for existing usage
+export const ModelInfo = ModelSelector;
