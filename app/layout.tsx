@@ -6,7 +6,7 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { PWAPrompt } from '@/components/layout/PWAPrompt';
 import { ToastProvider } from '@/components/ui/toast';
-import { ClientAuthProvider } from '@/components/providers/ClientAuthProvider';
+
 import { PWA_CONFIG } from '@/lib/constants';
 
 const inter = Inter({ 
@@ -114,25 +114,22 @@ export default function RootLayout({ children }: RootLayoutProps) {
       </head>
       <body className={`${inter.variable} font-body bg-background text-text-primary antialiased`}>
         <ToastProvider>
-          <ClientAuthProvider>
-            {/* Animated Background */}
-            <AnimatedBackground />
+          {/* Animated Background */}
+          <AnimatedBackground />
 
-            {/* Main Content */}
-            <div className="relative min-h-screen flex flex-col">
-              <Header />
+          {/* Main Content */}
+          <div className="relative min-h-screen flex flex-col">
+            <Header />
 
-              <main className="flex-1">
-                {children}
-              </main>
+            <main className="flex-1">
+              {children}
+            </main>
 
-              <Footer />
-            </div>
+            <Footer />
+          </div>
 
-            {/* PWA Components */}
-            <PWAPrompt />
-
-          </ClientAuthProvider>
+          {/* PWA Components */}
+          <PWAPrompt />
         </ToastProvider>
         
         {/* Service Worker Registration */}

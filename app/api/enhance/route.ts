@@ -4,39 +4,13 @@ import { rateLimit } from '@/lib/rate-limit';
 import { validatePrompt } from '@/lib/utils';
 import { EnhanceRequest, ApiResponse, EnhancementResult } from '@/lib/types';
 import { API_CONFIG } from '@/lib/constants';
-import { verifyIdToken } from '@/lib/server/firebase-admin';
-import { authenticateRequest } from '@/lib/api-auth';
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
 
   try {
-    // Authentication (supports both Firebase tokens and API keys)
-    const authResult = await authenticateRequest(request);
-
-    // Get user's billing status for rate limiting
-    let userPlan: 'free' | 'pro' | null = null;
-    if (authResult.userId) {
-      try {
-        const { getAdminDb } = await import('@/lib/server/firebase-admin');
-        const db = getAdminDb();
-        if (db) {
-          const userDoc = await db.collection('users').doc(authResult.userId).get();
-          if (userDoc.exists) {
-            const userData = userDoc.data();
-            const billingStatus = userData?.billing?.status || 'free';
-            // Map billing status to rate limit plan
-            userPlan = ['active', 'trialing', 'pro'].includes(billingStatus) ? 'pro' : 'free';
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching user billing status:', error);
-        userPlan = 'free';
-      }
-    }
-
-    // Rate limiting
-    const rateLimitResult = await rateLimit(request, userPlan, authResult.userId);
+    // Rate limiting (no authentication required)
+    const rateLimitResult = await rateLimit(request, null, null);
     if (!rateLimitResult.success) {
       return NextResponse.json(
         {

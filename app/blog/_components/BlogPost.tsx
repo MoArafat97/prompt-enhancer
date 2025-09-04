@@ -11,7 +11,7 @@ import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { BLOG_POSTS } from './BlogListing';
 import remarkGfm from 'remark-gfm';
 import { ExternalLink, ArrowRight } from 'lucide-react';
-import { useAuth } from '@/lib/contexts/AuthContext';
+
 
 interface BlogPostProps {
   post: {
@@ -36,19 +36,13 @@ interface BlogPostProps {
 // Smart routing utility function
 function useSmartRouting() {
   const router = useRouter();
-  const { user } = useAuth();
 
   const navigateToApp = () => {
-    if (user) {
-      // User is authenticated - go to dashboard
-      router.push('/dashboard/workspace');
-    } else {
-      // User is not authenticated - go to homepage
-      router.push('/');
-    }
+    // Always go to homepage (no authentication required)
+    router.push('/');
   };
 
-  return { navigateToApp, isAuthenticated: !!user };
+  return { navigateToApp, isAuthenticated: false };
 }
 
 // Markdown Link Component with smart routing

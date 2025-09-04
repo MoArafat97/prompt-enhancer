@@ -1,20 +1,14 @@
 "use client";
 
-import React, { useState } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles, LogIn, BookOpen } from 'lucide-react';
+import { Sparkles, BookOpen } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { HeaderProps } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/lib/contexts/AuthContext';
-import { UserMenu } from '@/components/auth/UserMenu';
-import { AuthModal } from '@/components/auth/AuthModal';
-import { Button } from '@/components/ui/button';
 
 export function Header({ className }: HeaderProps) {
-  const { user, loading } = useAuth();
-  const [authModalOpen, setAuthModalOpen] = useState(false);
   const pathname = usePathname();
   return (
     <motion.header
@@ -82,22 +76,10 @@ export function Header({ className }: HeaderProps) {
               <BookOpen className="w-4 h-4" />
               <span>Blog</span>
             </Link>
-            {user && (
-              <Link
-                href="/dashboard"
-                className={cn(
-                  "text-sm font-medium transition-colors hover:text-brand-primary",
-                  pathname?.startsWith("/dashboard") ? "text-brand-primary" : "text-text-secondary"
-                )}
-              >
-                Dashboard
-              </Link>
-            )}
           </nav>
 
-          {/* Right Side - Social Links and Auth */}
+          {/* Right Side - Theme Toggle */}
           <div className="flex items-center space-x-3">
-            {/* Social Links hidden on dashboard for focus */}
             <motion.button
               className="p-2 text-text-muted hover:text-text-primary transition-colors duration-200"
               whileHover={{ scale: 1.1 }}
@@ -114,32 +96,9 @@ export function Header({ className }: HeaderProps) {
               />
             </motion.button>
 
-            {/* Auth Section */}
-            <div className="ml-2 pl-2 border-l border-surface-tertiary">
-              {loading ? (
-                <div className="w-8 h-8 rounded-full bg-surface-secondary animate-pulse" />
-              ) : user ? (
-                <UserMenu />
-              ) : (
-                <Button
-                  onClick={() => setAuthModalOpen(true)}
-                  size="sm"
-                  className="flex items-center space-x-2"
-                >
-                  <LogIn className="w-4 h-4" />
-                  <span className="hidden sm:inline">Sign In</span>
-                </Button>
-              )}
-            </div>
           </div>
         </div>
       </div>
-
-      {/* Auth Modal */}
-      <AuthModal
-        isOpen={authModalOpen}
-        onClose={() => setAuthModalOpen(false)}
-      />
     </motion.header>
   );
 }

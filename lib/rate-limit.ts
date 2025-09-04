@@ -36,7 +36,7 @@ async function getRedisClient() {
 export async function rateLimit(
   request: NextRequest,
   userPlan: 'free' | 'pro' | null,
-  userId?: string
+  userId?: string | null
 ): Promise<RateLimitResult> {
   const redis = await getRedisClient();
 
@@ -53,7 +53,7 @@ export async function rateLimit(
 async function rateLimitRedis(
   request: NextRequest,
   userPlan: 'free' | 'pro' | null,
-  userId: string | undefined,
+  userId: string | null | undefined,
   redis: any
 ): Promise<RateLimitResult> {
   const ip = getClientIP(request);

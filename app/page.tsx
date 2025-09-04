@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { PromptInput } from '@/components/enhancement/PromptInput';
 import { TechniqueSelector } from '@/components/enhancement/TechniqueSelector';
@@ -18,11 +17,9 @@ import { AnimatedSection } from '@/components/animations/ParallaxBackground';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { EnhancementTechnique, OutputFormat, EnhancementResult } from '@/lib/types';
 import { useToast } from '@/components/ui/toast';
-import { useAuth } from '@/lib/contexts/AuthContext';
+
 
 export default function HomePage() {
-  const router = useRouter();
-  const { user } = useAuth();
   const [prompt, setPrompt] = useState('');
   const [technique, setTechnique] = useState<EnhancementTechnique>('clarity');
   const [category, setCategory] = useState<TechniqueCategory>('all');
@@ -30,13 +27,6 @@ export default function HomePage() {
   const [result, setResult] = useState<EnhancementResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { addToast } = useToast();
-
-  // Client-side guard: if authenticated, immediately redirect to dashboard workspace
-  useEffect(() => {
-    if (user) {
-      router.replace('/dashboard/workspace');
-    }
-  }, [user, router]);
 
   // Handle category change - reset technique to first available in new category
   useEffect(() => {

@@ -18,8 +18,7 @@ import { ResultDisplayProps } from '@/lib/types';
 import { copyToClipboard, formatProcessingTime, formatDisplayText } from '@/lib/utils';
 import { DEFAULT_MODEL } from '@/lib/constants';
 import { useToast } from '@/components/ui/toast';
-import { SavePromptButton } from './SavePromptButton';
-import { AuthModal } from '@/components/auth/AuthModal';
+
 
 export function ResultDisplay({
   result,
@@ -28,7 +27,7 @@ export function ResultDisplay({
   technique
 }: ResultDisplayProps & { technique?: string }) {
   const [copied, setCopied] = useState(false);
-  const [authModalOpen, setAuthModalOpen] = useState(false);
+
   const { addToast } = useToast();
 
   const handleCopy = async () => {
@@ -139,11 +138,8 @@ export function ResultDisplay({
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.4 }}
           >
-            <SavePromptButton
-              result={result}
-              onAuthRequired={() => setAuthModalOpen(true)}
-            />
-            
+            {/* Save functionality removed (was authentication-dependent) */}
+
             <Button
               variant="outline"
               size="sm"
@@ -292,11 +288,7 @@ export function ResultDisplay({
         </CardContent>
       </Card>
 
-      {/* Auth Modal */}
-      <AuthModal
-        isOpen={authModalOpen}
-        onClose={() => setAuthModalOpen(false)}
-      />
+      {/* Auth Modal removed */}
     </motion.div>
   );
 }
